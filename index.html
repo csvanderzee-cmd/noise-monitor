@@ -24,6 +24,11 @@
   #controls .group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #threshold, #warnTime { width: 220px; accent-color: #ffd84d; }
   #warnTime { width: 150px; }
+  /* Fixed-width numbers so the controls don't shift when a value gains a digit */
+  #thresholdVal, #warnTimeVal {
+    display: inline-block; min-width: 3ch; text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
   #controls button {
     font: inherit; color: #0b1530; background: #ffd84d; border: 0;
     padding: 6px 14px; border-radius: 8px; cursor: pointer;
