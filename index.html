@@ -1563,7 +1563,8 @@ function rainbow(t) {
 
 // Shared cute face, drawn around (ox, oy) in body-size units.
 // Moods: happy, worried (close to the line), sad (yellow warning), scared (fleeing)
-function drawFace(k, s, t, ox = 0, oy = 0) {
+// mouthDy moves just the mouth down (in body-size units), e.g. onto a hippo's snout
+function drawFace(k, s, t, ox = 0, oy = 0, mouthDy = 0) {
   const scared = k.mood === 'scared', sad = k.mood === 'sad', worried = k.mood === 'worried';
   ctx.save();
   ctx.translate(ox * s, oy * s);
@@ -1616,6 +1617,7 @@ function drawFace(k, s, t, ox = 0, oy = 0) {
   }
 
   // Mouth: smile, frown when sad, wobbly when worried, "o" when scared
+  ctx.translate(0, mouthDy * s);
   ctx.beginPath();
   if (sad) {
     ctx.arc(s * 0.3, s * 0.5, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
@@ -3109,8 +3111,9 @@ const DRAW = {
     ctx.fillStyle = rgb(mix(c, WHITE, 0.25));
     ctx.beginPath(); ctx.ellipse(s * 0.1, s * 0.48, s * 0.95, s * 0.48, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.fillStyle = rgb(dark);
-    [-0.25, 0.45].forEach(nx => { ctx.beginPath(); ctx.ellipse(nx * s, s * 0.3, s * 0.08, s * 0.05, 0, 0, Math.PI * 2); ctx.fill(); });
-    drawFace(k, s, t, -0.3, -0.2);
+    // Nostrils on top of the snout, mouth just below them, eyes up on the head
+    [-0.2, 0.25].forEach(nx => { ctx.beginPath(); ctx.ellipse(nx * s, s * 0.2, s * 0.1, s * 0.065, 0, 0, Math.PI * 2); ctx.fill(); });
+    drawFace(k, s, t, -0.3, -0.3, 0.45);
   },
 
   rhino(s, t, c, k) {
