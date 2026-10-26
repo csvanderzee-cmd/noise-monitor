@@ -182,6 +182,8 @@ const BEEP_EVERY_MS = 3000;
 const RARE_CATCH_MS = 15000;       // a rare critter is caught after staying this long
 const RARE_CHECK_MS = 8000;        // how often to roll for a rare critter
 const RARE_CHANCE = 0.4;
+const ROTATE_MS = 4000;            // once the screen is full, swap a couple of critters this often
+const ROTATE_COUNT = 2;
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene'), ctx = canvas.getContext('2d');
@@ -1590,6 +1592,15 @@ class Critter {
       this.bloomY = this.y;
     }
   }
+  // Calmly head off screen (or shrink back down) to make room for new arrivals
+  leave() {
+    this.leaving = true;
+    this.nervous = 0;
+    this.leaveDir = this.x < W / 2 ? -1 : 1;
+  }
+  get settled() {
+    return !this.rare && !this.fleeing && !this.leaving && !this.collecting && (this.plant ? this.growth >= 1 : this.alpha >= 1);
+  }
   collect() {
     // A picked flower's bloom flies to the basket from the top of its stem
     if (this.plant) { this.x = this.bloomX; this.y = this.bloomY; }
@@ -1611,6 +1622,9 @@ class Critter {
       if (this.fleeing) {
         // Shrink back into the ground
         this.growth -= dt * 1.5;
+        if (this.growth <= 0) this.alpha = 0;
+      } else if (this.leaving) {
+        this.growth -= dt * 0.4;
         if (this.growth <= 0) this.alpha = 0;
       } else {
         this.growth = Math.min(1, this.growth + dt * 0.3);
@@ -1636,6 +1650,13 @@ class Critter {
       }
       return;
     }
+    if (this.leaving) {
+      this.vx += (this.leaveDir * 180 - this.vx) * dt * 2;
+      this.vy *= 0.98;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      return;
+    }
     this.alpha = Math.min(1, this.alpha + dt * 0.6);
     this.nervous = nervous;
     // Gentle wandering around a home spot; jittery when it's getting noisy
@@ -1648,7 +1669,7 @@ class Critter {
     this.y += this.vy * dt;
   }
   get gone() {
-    return this.done || this.alpha <= 0 && this.fleeing || this.x < -150 || this.x > W + 150 || this.y < -150;
+    return this.done || this.alpha <= 0 && (this.fleeing || this.leaving) || this.x < -150 || this.x > W + 150 || this.y < -150;
   }
   color(t) {
     return this.baseColor || rainbow(t);
@@ -1729,7 +1750,7 @@ class Critter {
   }
 }
 
-let critters = [], lastSpawn = 0, lastRareCheck = 0, lastFrame = performance.now();
+let critters = [], lastSpawn = 0, lastRareCheck = 0, lastRotate = 0, lastFrame = performance.now();
 
 // Only one rare at a time; longer quiet unlocks rarer kinds
 function maybeSpawnRare(streak) {
@@ -1752,10 +1773,19 @@ function loop(now) {
   }
 
   // New critters arrive while it stays quiet
-  if (analyser && !loud && now - lastScare > 2000 && now - lastSpawn > 1200 &&
-      critters.filter(c => !c.fleeing).length < (scene.max || MAX_CRITTERS)) {
+  const max = scene.max || MAX_CRITTERS;
+  const staying = critters.filter(c => !c.fleeing && !c.leaving).length;
+  if (analyser && !loud && now - lastScare > 2000 && now - lastSpawn > 1200 && staying < max) {
     critters.push(new Critter(scene.common()));
     lastSpawn = now;
+  }
+  // Once the screen is full, a couple leave every few seconds so new ones can come in
+  if (analyser && !loud && staying >= max && now - lastRotate > ROTATE_MS) {
+    lastRotate = now;
+    const settled = critters.filter(c => c.settled);
+    for (let i = 0; i < ROTATE_COUNT && settled.length; i++) {
+      settled.splice(Math.floor(Math.random() * settled.length), 1)[0].leave();
+    }
   }
   if (analyser && !loud && now - lastRareCheck > RARE_CHECK_MS) {
     lastRareCheck = now;
@@ -1770,6 +1800,11 @@ function loop(now) {
   critters.forEach(c => c.update(dt, t, loud ? 0 : nervous));
   critters = critters.filter(c => !c.gone);
 
+  // Skip drawing while the window has no size (e.g. opened in a background tab)
+  if (!background.width || !background.height) {
+    requestAnimationFrame(loop);
+    return;
+  }
   ctx.drawImage(background, 0, 0, W, H);
   if (scene.ambient) scene.ambient(t);
   if (scene.glow) {
