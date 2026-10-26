@@ -199,6 +199,7 @@ const SCENES = {
   meadow: {
     name: 'Firefly Meadow',
     jarTitle: 'Firefly Jar',
+    emptyLabel: 'Empty jar',
     jarKey: 'noiseMonitorJar',
     intro: 'Fireflies come out when the room is quiet. If it gets too loud, they get scared and fly away!',
     rareIntro: 'Stay quiet longer to find rare fireflies. Keep a rare one on screen long enough and it goes in your jar.',
@@ -218,6 +219,7 @@ const SCENES = {
   aquarium: {
     name: 'Aquarium',
     jarTitle: 'Sea Creature Tank',
+    emptyLabel: 'Empty tank',
     jarKey: 'noiseMonitorJar_aquarium',
     intro: 'Fish swim in when the room is quiet. If it gets too loud, they get scared and dart away!',
     rareIntro: 'Stay quiet longer to find rare sea creatures. Keep a rare one on screen long enough and it joins your tank.',
@@ -238,6 +240,7 @@ const SCENES = {
   halloween: {
     name: 'Halloween',
     jarTitle: 'Trick-or-Treat Bag',
+    emptyLabel: 'Empty bag',
     jarKey: 'noiseMonitorJar_halloween',
     intro: 'Friendly ghosts float out when the room is quiet. If it gets too loud, they get spooked and vanish!',
     rareIntro: 'Stay quiet longer to find rare Halloween friends. Keep one on screen long enough and it goes in your trick-or-treat bag.',
@@ -254,6 +257,30 @@ const SCENES = {
     ],
     background: drawHalloween,
     ambient: halloweenAmbient,
+  },
+  garden: {
+    name: 'Garden',
+    jarTitle: 'Flower Basket',
+    emptyLabel: 'Empty basket',
+    jarKey: 'noiseMonitorJar_garden',
+    intro: 'Flowers grow when the room is quiet. If it gets too loud, they shrink back down and hide!',
+    rareIntro: 'Stay quiet longer to grow rare flowers. Keep one blooming long enough and it gets picked for your basket.',
+    // Flowers grow in place instead of wandering: home is where they're planted in the soil
+    grow: true,
+    max: 26,
+    size: [9, 12], rareSize: 14,
+    home: [0.2, 0.9, 0.82, 0.95],
+    glow: false,
+    common: () => ({ kind: 'flower', color: pick([[255, 150, 190], [255, 220, 90], [190, 160, 255], [255, 255, 255], [255, 170, 100], [140, 200, 255]]) }),
+    rares: [
+      { id: 'sunflower', name: 'Sunflower',        kind: 'sunflower', color: [255, 200, 40],  quietSec: 30,  weight: 5 },
+      { id: 'tulip',     name: 'Pink Tulip',       kind: 'tulip',     color: [255, 120, 170], quietSec: 60,  weight: 4 },
+      { id: 'star',      name: 'Blue Star Flower', kind: 'star',      color: [100, 160, 255], quietSec: 120, weight: 3 },
+      { id: 'rose',      name: 'Golden Rose',      kind: 'rose',      color: [255, 190, 40],  quietSec: 180, weight: 2 },
+      { id: 'rainbow',   name: 'Rainbow Bloom',    kind: 'flower',    color: null,            quietSec: 300, weight: 1 },
+    ],
+    background: drawGarden,
+    ambient: gardenAmbient,
   },
 };
 
@@ -313,6 +340,7 @@ function applyScene() {
   $('startIntro').textContent = scene.intro;
   $('startRares').textContent = scene.rareIntro;
   $('jarTitle').textContent = scene.jarTitle;
+  $('resetJar').textContent = scene.emptyLabel;
   critters = [];
   loadJar();
   if (W) background = drawBackground();
@@ -725,6 +753,89 @@ function halloweenAmbient(t) {
     ctx.beginPath();
     ctx.ellipse(x, y, 230, 38, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+}
+
+function drawGarden(g, rand) {
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#7fcbff');
+  sky.addColorStop(0.7, '#d4f1ff');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
+
+  // Sun
+  const sx = W * 0.82, sy = H * 0.2, sr = Math.min(W, H) * 0.08;
+  const glow = g.createRadialGradient(sx, sy, sr * 0.8, sx, sy, sr * 3);
+  glow.addColorStop(0, 'rgba(255,240,150,0.6)');
+  glow.addColorStop(1, 'rgba(255,240,150,0)');
+  g.fillStyle = glow;
+  g.fillRect(sx - sr * 3, sy - sr * 3, sr * 6, sr * 6);
+  g.fillStyle = '#ffe259';
+  g.beginPath(); g.arc(sx, sy, sr, 0, Math.PI * 2); g.fill();
+
+  hill(g, H * 0.62, '#9fd97a', 0.06, 1.4);
+  hill(g, H * 0.7, '#7cc95e', 0.04, 2.2);
+
+  // White picket fence
+  const sc = Math.min(W, H) / 700;
+  const fenceY = H * 0.74, ph = 50 * sc, pw = 16 * sc;
+  g.fillStyle = '#fdfdf7';
+  g.fillRect(0, fenceY - ph * 0.7, W, 6 * sc);
+  g.fillRect(0, fenceY - ph * 0.3, W, 6 * sc);
+  for (let x = 6; x < W; x += pw * 1.8) {
+    g.beginPath();
+    g.moveTo(x, fenceY);
+    g.lineTo(x, fenceY - ph);
+    g.lineTo(x + pw / 2, fenceY - ph - pw * 0.6);
+    g.lineTo(x + pw, fenceY - ph);
+    g.lineTo(x + pw, fenceY);
+    g.fill();
+  }
+
+  // Lawn
+  g.fillStyle = '#5fb84a';
+  g.fillRect(0, fenceY, W, H - fenceY);
+
+  // Soil bed where the flowers grow
+  const bedY = H * 0.8;
+  g.fillStyle = '#8b5a3c';
+  g.beginPath();
+  g.moveTo(0, H);
+  for (let x = 0; x <= W; x += 10) g.lineTo(x, bedY + Math.sin(x / W * Math.PI * 4) * 6);
+  g.lineTo(W, H);
+  g.fill();
+  g.fillStyle = 'rgba(60,35,20,0.4)';
+  for (let i = 0; i < 160; i++) {
+    g.beginPath();
+    g.arc(rand() * W, bedY + 8 + rand() * H * 0.2, rand() * 2.5 + 0.5, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  // Grass tufts along the lawn
+  g.strokeStyle = '#4a9c38';
+  g.lineWidth = 2;
+  for (let i = 0; i < 90; i++) {
+    const x = rand() * W, y = fenceY + 6 + rand() * (bedY - fenceY - 8);
+    g.beginPath();
+    g.moveTo(x - 3, y); g.lineTo(x - 5, y - 8);
+    g.moveTo(x, y); g.lineTo(x, y - 10);
+    g.moveTo(x + 3, y); g.lineTo(x + 5, y - 8);
+    g.stroke();
+  }
+}
+
+// Fluffy clouds drifting across the sky
+function gardenAmbient(t) {
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  for (let i = 0; i < 4; i++) {
+    const w = 120 + (i % 2) * 60;
+    const x = ((t * (8 + i * 3) + i * 400) % (W + w * 2)) - w;
+    const y = H * (0.12 + (i % 3) * 0.1);
+    [[0, 0, 0.3], [0.25, -0.12, 0.25], [0.5, 0, 0.28], [0.25, 0.05, 0.3]].forEach(([dx, dy, r]) => {
+      ctx.beginPath();
+      ctx.arc(x + dx * w, y + dy * w, r * w * 0.6, 0, Math.PI * 2);
+      ctx.fill();
+    });
   }
 }
 
@@ -1333,7 +1444,98 @@ const DRAW = {
     });
     drawFace(k, s, t, -0.3, 0.05);
   },
+
+  // Blooms are drawn centered on the face; the stem is drawn by Critter.drawPlant
+  flower(s, t, c, k) {
+    // Rainbow Bloom gives each petal its own color
+    drawPetals(s, 8, 0.95, 0.42, i => k.baseColor ? c : rainbow(t + i * 0.3125), false);
+    drawCenter(s, [255, 213, 79]);
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  sunflower(s, t, c, k) {
+    drawPetals(s, 18, 1.05, 0.22, () => c, true);
+    drawCenter(s, [205, 145, 75]);
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  star(s, t, c, k) {
+    drawPetals(s, 5, 1.2, 0.55, () => c, true);
+    drawCenter(s, [255, 240, 185]);
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  rose(s, t, c, k) {
+    // Two rings of round petals around a swirled center
+    [[7, 1.05, 0.62, mix(c, BLACK, 0.18)], [6, 0.6, 0.55, c]].forEach(([n, d, r, col], ring) => {
+      ctx.fillStyle = rgb(col);
+      ctx.strokeStyle = rgb(mix(col, BLACK, 0.25));
+      ctx.lineWidth = 1.2;
+      for (let i = 0; i < n; i++) {
+        const a = i / n * Math.PI * 2 + ring * 0.4;
+        ctx.beginPath();
+        ctx.arc(Math.cos(a) * d * s, Math.sin(a) * d * s, r * s, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+    });
+    drawCenter(s, mix(c, WHITE, 0.3));
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  tulip(s, t, c, k) {
+    // Cup with three pointed tips
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-s * 1.05, -s * 0.2);
+    ctx.lineTo(-s * 0.75, -s * 1.25);
+    ctx.lineTo(-s * 0.35, -s * 0.65);
+    ctx.lineTo(0, -s * 1.35);
+    ctx.lineTo(s * 0.35, -s * 0.65);
+    ctx.lineTo(s * 0.75, -s * 1.25);
+    ctx.lineTo(s * 1.05, -s * 0.2);
+    ctx.quadraticCurveTo(s * 1.05, s * 1.0, 0, s * 1.0);
+    ctx.quadraticCurveTo(-s * 1.05, s * 1.0, -s * 1.05, -s * 0.2);
+    ctx.fill();
+    ctx.stroke();
+    drawFace(k, s, t, -0.3, 0.1);
+  },
 };
+
+// Ring of petals around the bloom's center; colorFn(i) picks each petal's color
+function drawPetals(s, n, len, width, colorFn, pointed) {
+  for (let i = 0; i < n; i++) {
+    const col = colorFn(i);
+    ctx.save();
+    ctx.rotate(i / n * Math.PI * 2);
+    ctx.fillStyle = rgb(col);
+    ctx.strokeStyle = rgb(mix(col, BLACK, 0.2));
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (pointed) {
+      ctx.moveTo(s * 0.6, -s * width);
+      ctx.quadraticCurveTo(s * (0.7 + len * 0.6), -s * width * 1.2, s * (0.75 + len), 0);
+      ctx.quadraticCurveTo(s * (0.7 + len * 0.6), s * width * 1.2, s * 0.6, s * width);
+    } else {
+      ctx.ellipse(s * (0.7 + len * 0.5), 0, s * len * 0.6, s * width, 0, 0, Math.PI * 2);
+    }
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function drawCenter(s, col) {
+  ctx.fillStyle = rgb(col);
+  ctx.strokeStyle = rgb(mix(col, BLACK, 0.25));
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, s, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+}
 
 // Little twinkling stars around rares so they stand out in every scene
 function drawSparkles(x, y, s, t) {
@@ -1376,13 +1578,27 @@ class Critter {
     this.mood = 'happy';
     this.alpha = 0;
     this.fleeing = false;
+    // Flowers are planted at a spot in the soil and grow up from it
+    this.plant = !!scene.grow;
+    if (this.plant) {
+      this.x = this.homeX;
+      this.y = this.homeY;
+      this.stemH = H * (0.12 + Math.random() * 0.22);
+      this.growth = 0;
+      this.dir = 1;
+      this.bloomX = this.x;
+      this.bloomY = this.y;
+    }
   }
   collect() {
+    // A picked flower's bloom flies to the basket from the top of its stem
+    if (this.plant) { this.x = this.bloomX; this.y = this.bloomY; }
     this.collecting = true;
   }
   scare(cx, cy) {
     if (this.collecting) return;
     this.fleeing = true;
+    if (this.plant) return;
     let dx = this.x - cx, dy = this.y - cy;
     const d = Math.hypot(dx, dy) || 1;
     const speed = 500 + Math.random() * 400;
@@ -1391,6 +1607,18 @@ class Critter {
   }
   update(dt, t, nervous) {
     if (this.done) return;
+    if (this.plant && !this.collecting) {
+      if (this.fleeing) {
+        // Shrink back into the ground
+        this.growth -= dt * 1.5;
+        if (this.growth <= 0) this.alpha = 0;
+      } else {
+        this.growth = Math.min(1, this.growth + dt * 0.3);
+        this.alpha = Math.min(1, this.alpha + dt * 2);
+        this.nervous = nervous;
+      }
+      return;
+    }
     if (this.fleeing) {
       this.x += this.vx * dt;
       this.y += this.vy * dt;
@@ -1452,10 +1680,52 @@ class Critter {
     ctx.save();
     ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha));
     ctx.translate(this.x, this.y);
-    ctx.scale(this.dir, 1);
-    DRAW[this.kind](this.size, t, this.color(t), this);
+    if (this.plant && !this.collecting) {
+      this.drawPlant(t);
+    } else {
+      ctx.scale(this.dir, 1);
+      DRAW[this.kind](this.size, t, this.color(t), this);
+    }
     ctx.restore();
-    if (this.rare && !this.fleeing) drawSparkles(this.x, this.y, this.size, t);
+    if (this.rare && !this.fleeing) {
+      const atBloom = this.plant && !this.collecting;
+      drawSparkles(atBloom ? this.bloomX : this.x, atBloom ? this.bloomY : this.y, this.size, t);
+    }
+  }
+  // Stem and leaves, then the bloom on top; droops when sad
+  drawPlant(t) {
+    const s = this.size;
+    const g = this.growth * this.growth * (3 - 2 * this.growth);
+    const droop = this.mood === 'sad' ? 0.6 : this.mood === 'worried' ? 0.25 : 0;
+    const sway = Math.sin(t * 1.5 + this.phase) * 0.08 + (Math.random() - 0.5) * this.nervous * 0.1;
+    const h = this.stemH * g;
+    const tx = Math.sin(sway) * h * 0.4 + droop * s * 1.6, ty = -h + droop * s;
+
+    ctx.strokeStyle = '#4f9a3e';
+    ctx.lineWidth = Math.max(3, s * 0.18);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.quadraticCurveTo(0, -h * 0.5, tx, ty);
+    ctx.stroke();
+
+    // Leaves partway up the stem
+    const u = 0.35;
+    const lx = 2 * (1 - u) * u * 0 + u * u * tx, ly = 2 * (1 - u) * u * (-h * 0.5) + u * u * ty;
+    ctx.fillStyle = '#66bb55';
+    [[-1, -0.6], [1, 0.6]].forEach(([side, rot]) => {
+      ctx.beginPath();
+      ctx.ellipse(lx + side * s * 0.5 * g, ly, s * 0.6 * g + 0.1, s * 0.22 * g + 0.1, rot, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.translate(tx, ty);
+    ctx.rotate(sway + droop * 0.8);
+    const b = Math.max(0.01, g);
+    ctx.scale(b, b);
+    DRAW[this.kind](s, t, this.color(t), this);
+    this.bloomX = this.x + tx;
+    this.bloomY = this.y + ty;
   }
 }
 
@@ -1483,7 +1753,7 @@ function loop(now) {
 
   // New critters arrive while it stays quiet
   if (analyser && !loud && now - lastScare > 2000 && now - lastSpawn > 1200 &&
-      critters.filter(c => !c.fleeing).length < MAX_CRITTERS) {
+      critters.filter(c => !c.fleeing).length < (scene.max || MAX_CRITTERS)) {
     critters.push(new Critter(scene.common()));
     lastSpawn = now;
   }
@@ -1507,7 +1777,9 @@ function loop(now) {
     critters.forEach(c => c.drawGlow(t));
     ctx.globalCompositeOperation = 'source-over';
   }
-  critters.forEach(c => c.drawBody(t));
+  // Flowers planted nearer the front draw on top
+  const order = scene.grow ? [...critters].sort((a, b) => a.homeY - b.homeY) : critters;
+  order.forEach(c => c.drawBody(t));
 
   requestAnimationFrame(loop);
 }
