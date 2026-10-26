@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Firefly Meadow Noise Monitor</title>
+<title>Quiet Critters Noise Monitor</title>
 <style>
   * { box-sizing: border-box; }
   html, body {
@@ -13,13 +13,13 @@
   }
   canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 
-  /* Controls */
+  /* Controls (above the start screen so the scene can be picked before starting) */
   #controls {
     position: fixed; top: 12px; left: 12px; right: 12px;
     display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center;
     padding: 10px 16px; border-radius: 14px;
     background: rgba(10, 20, 45, 0.6); backdrop-filter: blur(6px);
-    font-size: 16px; z-index: 5;
+    font-size: 16px; z-index: 11;
   }
   #controls .group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   #threshold, #warnTime { width: 220px; accent-color: #ffd84d; }
@@ -32,6 +32,10 @@
   #controls button {
     font: inherit; color: #0b1530; background: #ffd84d; border: 0;
     padding: 6px 14px; border-radius: 8px; cursor: pointer;
+  }
+  #scenePick {
+    font: inherit; color: #0b1530; background: #fff; border: 0;
+    padding: 5px 8px; border-radius: 8px; cursor: pointer;
   }
   .toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   .toggle input { width: 18px; height: 18px; accent-color: #ffd84d; }
@@ -66,7 +70,7 @@
   }
   #stats b { color: #ffd84d; font-variant-numeric: tabular-nums; }
 
-  /* Warning glow while over the line, before the fireflies scatter */
+  /* Warning glow while over the line, before the critters scatter */
   #warnEdge {
     position: fixed; inset: 0; z-index: 3; pointer-events: none;
     box-shadow: inset 0 0 80px 30px rgba(255, 200, 40, 0.75);
@@ -88,10 +92,10 @@
   body.loud #alarm { opacity: 1; animation: pulse 1s ease-in-out infinite; }
   @keyframes pulse { 50% { background: rgba(255, 50, 50, 0.9); } }
 
-  /* Rare firefly jar */
+  /* Rare collection jar */
   #jar {
     position: fixed; left: 20px; top: 50%; transform: translateY(-40%);
-    width: 190px; padding: 12px 14px; border-radius: 14px;
+    width: 200px; padding: 12px 14px; border-radius: 14px;
     background: rgba(10, 20, 45, 0.6); z-index: 4;
   }
   #jar h2 { margin: 0 0 8px; font-size: 18px; color: #ffd84d; }
@@ -137,6 +141,10 @@
 
 <header id="controls">
   <div class="group">
+    <label for="scenePick">Scene:</label>
+    <select id="scenePick"></select>
+  </div>
+  <div class="group">
     <label for="threshold">Noise limit: <b id="thresholdVal">70</b></label>
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
     <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
@@ -151,15 +159,15 @@
 
 <div id="meter"><div id="meterFill"></div><div id="meterMark"></div><span id="dbReadout">--</span></div>
 <div id="stats">Quiet time <b id="streak">0:00</b> &nbsp;·&nbsp; Best <b id="best">0:00</b></div>
-<div id="jar"><h2>Firefly Jar</h2><div id="slots"></div><button id="resetJar">Empty jar</button></div>
+<div id="jar"><h2 id="jarTitle"></h2><div id="slots"></div><button id="resetJar">Empty jar</button></div>
 <div id="toast"></div>
 <div id="warnEdge"></div>
 <div id="alarm"><div>Too loud!</div></div>
 
 <div id="start">
-  <h1>Firefly Meadow</h1>
-  <p>Fireflies come out when the room is quiet. If it gets too loud, they get scared and fly away!</p>
-  <p>Stay quiet longer to find rare fireflies. Keep a rare one on screen long enough and it goes in your jar.</p>
+  <h1 id="startTitle"></h1>
+  <p id="startIntro"></p>
+  <p id="startRares"></p>
   <button id="startBtn">Start</button>
   <p id="error"></p>
 </div>
@@ -168,54 +176,97 @@
 // ---- Settings ----
 const MIN_DB = 30, MAX_DB = 110;   // meter range
 const DB_OFFSET = 100;             // shifts mic level (dBFS) onto a friendly 30–110 scale; not real room dB, so the page never says "dB"
-const MAX_FIREFLIES = 40;
+const MAX_CRITTERS = 40;
 const QUIET_AFTER_MS = 1500;       // must stay under the limit this long to clear
 const BEEP_EVERY_MS = 3000;
-const RARE_CATCH_MS = 15000;       // a rare firefly is caught after staying this long
-const RARE_CHECK_MS = 8000;        // how often to roll for a rare firefly
+const RARE_CATCH_MS = 15000;       // a rare critter is caught after staying this long
+const RARE_CHECK_MS = 8000;        // how often to roll for a rare critter
 const RARE_CHANCE = 0.4;
-
-// Rare fireflies unlock after this many seconds of continuous quiet
-const RARES = [
-  { id: 'blue',    name: 'Blue Glimmer',   color: [110, 190, 255], quietSec: 30,  weight: 5 },
-  { id: 'pink',    name: 'Rose Spark',     color: [255, 120, 190], quietSec: 60,  weight: 4 },
-  { id: 'purple',  name: 'Violet Wisp',    color: [185, 120, 255], quietSec: 120, weight: 3 },
-  { id: 'gold',    name: 'Golden Glow',    color: [255, 190, 40],  quietSec: 180, weight: 2 },
-  { id: 'rainbow', name: 'Rainbow Dancer', color: null,            quietSec: 300, weight: 1 },
-];
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene'), ctx = canvas.getContext('2d');
-const slider = $('threshold'), soundToggle = $('soundToggle');
+const slider = $('threshold'), soundToggle = $('soundToggle'), warnSlider = $('warnTime');
 
-const warnSlider = $('warnTime');
+const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const mix = (c, d, f) => c.map((v, i) => Math.round(v + (d[i] - v) * f));
+const WHITE = [255, 255, 255], BLACK = [0, 0, 0];
+const pick = list => list[Math.floor(Math.random() * list.length)];
 
-// warnSec: how long it can stay over the line before the fireflies scatter
-let threshold = 70, soundOn = true, warnSec = 3;
+// ---- Scenes ----
+// Each scene supplies its background, the critters that wander in, and the rares to collect.
+// Rares unlock after quietSec seconds of continuous quiet; weight sets how often each appears.
+const SCENES = {
+  meadow: {
+    name: 'Firefly Meadow',
+    jarTitle: 'Firefly Jar',
+    jarKey: 'noiseMonitorJar',
+    intro: 'Fireflies come out when the room is quiet. If it gets too loud, they get scared and fly away!',
+    rareIntro: 'Stay quiet longer to find rare fireflies. Keep a rare one on screen long enough and it goes in your jar.',
+    size: [9, 13], rareSize: 15,
+    home: [0.08, 0.88, 0.35, 0.85],
+    glow: true,
+    common: () => ({ kind: 'firefly', color: [220, 255, 90] }),
+    rares: [
+      { id: 'blue',    name: 'Blue Glimmer',   kind: 'firefly', color: [110, 190, 255], quietSec: 30,  weight: 5 },
+      { id: 'pink',    name: 'Rose Spark',     kind: 'firefly', color: [255, 120, 190], quietSec: 60,  weight: 4 },
+      { id: 'purple',  name: 'Violet Wisp',    kind: 'firefly', color: [185, 120, 255], quietSec: 120, weight: 3 },
+      { id: 'gold',    name: 'Golden Glow',    kind: 'firefly', color: [255, 190, 40],  quietSec: 180, weight: 2 },
+      { id: 'rainbow', name: 'Rainbow Dancer', kind: 'firefly', color: null,            quietSec: 300, weight: 1 },
+    ],
+    background: drawMeadow,
+  },
+  aquarium: {
+    name: 'Aquarium',
+    jarTitle: 'Sea Creature Tank',
+    jarKey: 'noiseMonitorJar_aquarium',
+    intro: 'Fish swim in when the room is quiet. If it gets too loud, they get scared and dart away!',
+    rareIntro: 'Stay quiet longer to find rare sea creatures. Keep a rare one on screen long enough and it joins your tank.',
+    size: [12, 17], rareSize: 20,
+    home: [0.1, 0.86, 0.25, 0.78],
+    glow: false,
+    common: () => ({ kind: 'fish', color: pick([[255, 170, 90], [120, 200, 255], [255, 150, 190], [140, 225, 160], [255, 220, 100], [190, 160, 255]]) }),
+    rares: [
+      { id: 'clown',   name: 'Clownfish',       kind: 'clownfish', color: [255, 125, 35],  quietSec: 30,  weight: 5 },
+      { id: 'puffer',  name: 'Puffy Pufferfish', kind: 'puffer',   color: [255, 210, 70],  quietSec: 60,  weight: 4 },
+      { id: 'jelly',   name: 'Pink Jellyfish',  kind: 'jelly',     color: [255, 140, 210], quietSec: 120, weight: 3 },
+      { id: 'octopus', name: 'Purple Octopus',  kind: 'octopus',   color: [165, 105, 225], quietSec: 180, weight: 2 },
+      { id: 'narwhal', name: 'Rainbow Narwhal', kind: 'narwhal',   color: null,            quietSec: 300, weight: 1 },
+    ],
+    background: drawAquarium,
+    ambient: aquariumAmbient,
+  },
+};
+
+// ---- Saved settings ----
+// warnSec: how long it can stay over the line before the critters scatter
+let threshold = 70, soundOn = true, warnSec = 3, sceneId = 'meadow';
 try {
   const saved = JSON.parse(localStorage.getItem('noiseMonitor') || '{}');
   if (saved.threshold) threshold = saved.threshold;
   if (saved.soundOn === false) soundOn = false;
   if (saved.warnSec) warnSec = saved.warnSec;
+  if (SCENES[saved.scene]) sceneId = saved.scene;
 } catch (e) {}
+let scene = SCENES[sceneId];
+
 slider.value = threshold;
 soundToggle.checked = soundOn;
 warnSlider.value = warnSec;
 $('warnTimeVal').textContent = warnSec;
 
 function save() {
-  try { localStorage.setItem('noiseMonitor', JSON.stringify({ threshold, soundOn, warnSec })); } catch (e) {}
+  try { localStorage.setItem('noiseMonitor', JSON.stringify({ threshold, soundOn, warnSec, scene: sceneId })); } catch (e) {}
 }
-warnSlider.addEventListener('input', () => {
-  warnSec = +warnSlider.value;
-  $('warnTimeVal').textContent = warnSec;
-  save();
-});
 function updateThresholdUI() {
   $('thresholdVal').textContent = threshold;
   $('meterMark').style.bottom = pct(threshold) + '%';
 }
 slider.addEventListener('input', () => { threshold = +slider.value; updateThresholdUI(); save(); });
+warnSlider.addEventListener('input', () => {
+  warnSec = +warnSlider.value;
+  $('warnTimeVal').textContent = warnSec;
+  save();
+});
 soundToggle.addEventListener('change', () => { soundOn = soundToggle.checked; save(); });
 $('fsBtn').addEventListener('click', () => {
   if (document.fullscreenElement) document.exitFullscreen();
@@ -225,12 +276,39 @@ $('fsBtn').addEventListener('click', () => {
 const pct = db => Math.max(0, Math.min(100, (db - MIN_DB) / (MAX_DB - MIN_DB) * 100));
 updateThresholdUI();
 
-// ---- Firefly jar ----
+// ---- Scene picker ----
+const scenePick = $('scenePick');
+scenePick.innerHTML = Object.entries(SCENES).map(([id, s]) => `<option value="${id}">${s.name}</option>`).join('');
+scenePick.value = sceneId;
+scenePick.addEventListener('change', () => {
+  sceneId = scenePick.value;
+  scene = SCENES[sceneId];
+  save();
+  applyScene();
+});
+
+function applyScene() {
+  document.title = scene.name + ' Noise Monitor';
+  $('startTitle').textContent = scene.name;
+  $('startIntro').textContent = scene.intro;
+  $('startRares').textContent = scene.rareIntro;
+  $('jarTitle').textContent = scene.jarTitle;
+  critters = [];
+  loadJar();
+  if (W) background = drawBackground();
+}
+
+// ---- Collection jar (one per scene) ----
 let jar = {};
-try { jar = JSON.parse(localStorage.getItem('noiseMonitorJar') || '{}'); } catch (e) {}
+
+function loadJar() {
+  jar = {};
+  try { jar = JSON.parse(localStorage.getItem(scene.jarKey) || '{}'); } catch (e) {}
+  renderJar();
+}
 
 function renderJar() {
-  $('slots').innerHTML = RARES.map(r => {
+  $('slots').innerHTML = scene.rares.map(r => {
     const count = jar[r.id] || 0;
     const bg = r.color ? `rgb(${r.color})` : 'conic-gradient(red, orange, yellow, lime, cyan, blue, magenta, red)';
     const mins = r.quietSec < 60 ? r.quietSec + ' sec' : r.quietSec / 60 + ' min';
@@ -239,21 +317,20 @@ function renderJar() {
       : `<div class="slot" data-id="${r.id}"><span class="dot">?</span><span>???<small>Quiet for ${mins}</small></span></div>`;
   }).join('');
 }
-renderJar();
 
 $('resetJar').addEventListener('click', () => {
-  if (!confirm('Empty the firefly jar? This removes every rare firefly the class has caught.')) return;
+  if (!confirm(`Empty the ${scene.jarTitle.toLowerCase()}? This removes every rare the class has caught in this scene.`)) return;
   jar = {};
-  try { localStorage.removeItem('noiseMonitorJar'); } catch (e) {}
+  try { localStorage.removeItem(scene.jarKey); } catch (e) {}
   renderJar();
 });
 
 function addToJar(rare) {
   const isNew = !jar[rare.id];
   jar[rare.id] = (jar[rare.id] || 0) + 1;
-  try { localStorage.setItem('noiseMonitorJar', JSON.stringify(jar)); } catch (e) {}
+  try { localStorage.setItem(scene.jarKey, JSON.stringify(jar)); } catch (e) {}
   renderJar();
-  showToast(isNew ? `✨ New firefly: ${rare.name}!` : `✨ Caught another ${rare.name}!`);
+  showToast(isNew ? `✨ New: ${rare.name}!` : `✨ Caught another ${rare.name}!`);
   if (soundOn && audioCtx) chime();
 }
 
@@ -304,35 +381,23 @@ function readLevel() {
   level += (db - level) * (db > level ? 0.3 : 0.05);
 }
 
-function beep() {
+function tones(notes, type, peak, length, gap) {
   const t = audioCtx.currentTime;
-  [880, 660].forEach((freq, i) => {
+  notes.forEach((freq, i) => {
     const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.type = 'triangle';
+    const start = t + i * gap;
+    osc.type = type;
     osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.0001, t + i * 0.25);
-    gain.gain.exponentialRampToValueAtTime(0.4, t + i * 0.25 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.25 + 0.22);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(peak, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + length);
     osc.connect(gain).connect(audioCtx.destination);
-    osc.start(t + i * 0.25);
-    osc.stop(t + i * 0.25 + 0.25);
+    osc.start(start);
+    osc.stop(start + length + 0.05);
   });
 }
-
-function chime() {
-  const t = audioCtx.currentTime;
-  [660, 880, 1320].forEach((freq, i) => {
-    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.0001, t + i * 0.12);
-    gain.gain.exponentialRampToValueAtTime(0.25, t + i * 0.12 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.12 + 0.4);
-    osc.connect(gain).connect(audioCtx.destination);
-    osc.start(t + i * 0.12);
-    osc.stop(t + i * 0.12 + 0.45);
-  });
-}
+const beep = () => tones([880, 660], 'triangle', 0.4, 0.22, 0.25);
+const chime = () => tones([660, 880, 1320], 'sine', 0.25, 0.4, 0.12);
 
 // ---- Loud / quiet state ----
 let loud = false, overSince = null, underSince = null, lastBeep = 0;
@@ -349,7 +414,7 @@ function updateState(now) {
       loud = true;
       lastScare = now;
       document.body.classList.add('loud');
-      fireflies.forEach(f => f.scare(canvas.width / 2, canvas.height / 2));
+      critters.forEach(c => c.scare(W / 2, H / 2));
     }
   } else {
     overSince = null;
@@ -376,7 +441,7 @@ function updateState(now) {
 
 const fmt = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
-// ---- Scene ----
+// ---- Backgrounds ----
 let W = 0, H = 0, dpr = 1, background;
 
 function resize() {
@@ -392,7 +457,14 @@ function drawBackground() {
   bg.width = W * dpr; bg.height = H * dpr;
   const g = bg.getContext('2d');
   g.scale(dpr, dpr);
+  // Seeded so scenery doesn't jump around on resize
+  let seed = 7;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  scene.background(g, rand);
+  return bg;
+}
 
+function drawMeadow(g, rand) {
   const sky = g.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, '#060c22');
   sky.addColorStop(0.6, '#16295a');
@@ -400,9 +472,6 @@ function drawBackground() {
   g.fillStyle = sky;
   g.fillRect(0, 0, W, H);
 
-  // Stars (seeded so they don't jump around on resize)
-  let seed = 7;
-  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   for (let i = 0; i < 160; i++) {
     g.fillStyle = `rgba(255,255,255,${0.3 + rand() * 0.6})`;
     g.beginPath();
@@ -420,7 +489,6 @@ function drawBackground() {
   g.fillStyle = '#fdf6d8';
   g.beginPath(); g.arc(mx, my, mr, 0, Math.PI * 2); g.fill();
 
-  // Hills
   hill(g, H * 0.72, '#14284a', 0.08, 1.3);
   hill(g, H * 0.82, '#0d1d38', 0.05, 2.1);
 
@@ -434,7 +502,6 @@ function drawBackground() {
     g.quadraticCurveTo(x + lean * 0.3, H - h * 0.6, x + lean, H - h);
     g.stroke();
   }
-  return bg;
 }
 
 function hill(g, baseY, color, amp, freq) {
@@ -448,31 +515,492 @@ function hill(g, baseY, color, amp, freq) {
   g.fill();
 }
 
-// ---- Fireflies ----
-// Cycles through the hues for the Rainbow Dancer
+function drawAquarium(g, rand) {
+  const water = g.createLinearGradient(0, 0, 0, H);
+  water.addColorStop(0, '#3cc6d8');
+  water.addColorStop(0.5, '#167fae');
+  water.addColorStop(1, '#0b4a7a');
+  g.fillStyle = water;
+  g.fillRect(0, 0, W, H);
+
+  // Sunbeams from the surface
+  g.fillStyle = 'rgba(255,255,255,0.06)';
+  for (let i = 0; i < 5; i++) {
+    const x = W * (0.1 + i * 0.2);
+    g.beginPath();
+    g.moveTo(x - 30, 0); g.lineTo(x + 40, 0);
+    g.lineTo(x + 160, H * 0.9); g.lineTo(x - 20, H * 0.9);
+    g.fill();
+  }
+
+  // Sandy floor
+  const sandY = H * 0.9;
+  g.fillStyle = '#e9d6a0';
+  g.beginPath();
+  g.moveTo(0, H);
+  for (let x = 0; x <= W; x += 10) g.lineTo(x, sandY + Math.sin(x / W * Math.PI * 3) * 10);
+  g.lineTo(W, H);
+  g.fill();
+  g.fillStyle = 'rgba(160,130,80,0.5)';
+  for (let i = 0; i < 120; i++) {
+    g.beginPath();
+    g.arc(rand() * W, sandY + 12 + rand() * H * 0.1, rand() * 2 + 0.5, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  // Rocks and coral
+  [[0.08, 34, 22], [0.3, 26, 16], [0.7, 40, 24], [0.93, 28, 18]].forEach(([fx, rx, ry]) => {
+    g.fillStyle = '#6f8596';
+    g.beginPath();
+    g.ellipse(W * fx, sandY + 6, rx, ry, 0, Math.PI, 0);
+    g.fill();
+  });
+  [[0.18, '#ff7f8f'], [0.5, '#ffa64d'], [0.82, '#c77dff']].forEach(([fx, color]) => {
+    coral(g, W * fx, sandY + 4, color, Math.min(W, H) / 700, rand);
+  });
+}
+
+function coral(g, x, y, color, scale, rand) {
+  g.strokeStyle = color;
+  g.lineCap = 'round';
+  const branch = (bx, by, angle, len, width) => {
+    if (len < 8) return;
+    const ex = bx + Math.cos(angle) * len, ey = by + Math.sin(angle) * len;
+    g.lineWidth = width;
+    g.beginPath(); g.moveTo(bx, by); g.lineTo(ex, ey); g.stroke();
+    branch(ex, ey, angle - 0.45 - rand() * 0.2, len * 0.7, width * 0.75);
+    branch(ex, ey, angle + 0.45 + rand() * 0.2, len * 0.7, width * 0.75);
+  };
+  branch(x, y, -Math.PI / 2, 45 * scale + 20, 12 * scale + 4);
+}
+
+// Swaying seaweed and rising bubbles, drawn every frame behind the critters
+function aquariumAmbient(t) {
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 9; i++) {
+    const x = W * (0.05 + i * 0.115) + (i % 2) * 20;
+    const h = H * (0.16 + ((i * 37) % 10) / 60);
+    ctx.strokeStyle = i % 2 ? '#2f9e6a' : '#3cb371';
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(x, H * 0.92);
+    for (let j = 1; j <= 8; j++) {
+      ctx.lineTo(x + Math.sin(t * 1.2 + i + j * 0.6) * j * 2.5, H * 0.92 - h * j / 8);
+    }
+    ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+  ctx.lineWidth = 1.5;
+  for (let i = 0; i < 24; i++) {
+    const x = (i * 173.3) % W + Math.sin(t * 2 + i) * 6;
+    const y = H - ((t * (30 + (i % 5) * 10) + i * 211) % (H + 40));
+    ctx.beginPath();
+    ctx.arc(x, y, 3 + (i % 4) * 2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+// ---- Critter drawing ----
+// Cycles through the hues for rainbow rares
 function rainbow(t) {
   const h = (t * 0.4) % 1;
   const f = n => { const k = (n + h * 12) % 12; return Math.round(255 * (0.5 - 0.5 * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
   return [f(0), f(8), f(4)];
 }
 
-class Firefly {
-  constructor(rare = null) {
+// Shared cute face, drawn around (ox, oy) in body-size units.
+// Moods: happy, worried (close to the line), sad (yellow warning), scared (fleeing)
+function drawFace(k, s, t, ox = 0, oy = 0) {
+  const scared = k.mood === 'scared', sad = k.mood === 'sad', worried = k.mood === 'worried';
+  ctx.save();
+  ctx.translate(ox * s, oy * s);
+
+  // Rosy cheeks
+  ctx.fillStyle = 'rgba(255,140,170,0.65)';
+  [-0.2, 0.78].forEach(bx => {
+    ctx.beginPath();
+    ctx.ellipse(bx * s, s * 0.3, s * 0.17, s * 0.1, 0, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Eyes: blink every few seconds, go wide when scared
+  const blinking = !scared && (t + k.phase * 3) % 4 < 0.15;
+  [0.05, 0.55].forEach(ex => {
+    const x = ex * s, y = -s * 0.15;
+    if (blinking) {
+      ctx.strokeStyle = '#1d1633';
+      ctx.lineWidth = Math.max(1.5, s * 0.08);
+      ctx.beginPath();
+      ctx.arc(x, y, s * 0.2, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+      return;
+    }
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x, y, s * (scared ? 0.33 : 0.29), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1d1633';
+    ctx.beginPath();
+    ctx.arc(x + s * 0.04, y + s * 0.03, s * (scared ? 0.1 : 0.2), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(x + s * 0.1, y - s * 0.06, s * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.strokeStyle = '#1d1633';
+  ctx.lineWidth = Math.max(1.2, s * 0.08);
+
+  // Sad eyebrows, slanting down toward the outside
+  if (sad) {
+    [[0.05, -1], [0.55, 1]].forEach(([ex, side]) => {
+      ctx.beginPath();
+      ctx.moveTo(ex * s + side * s * 0.2, -s * 0.5);
+      ctx.lineTo(ex * s - side * s * 0.2, -s * 0.62);
+      ctx.stroke();
+    });
+  }
+
+  // Mouth: smile, frown when sad, wobbly when worried, "o" when scared
+  ctx.beginPath();
+  if (sad) {
+    ctx.arc(s * 0.3, s * 0.5, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
+    ctx.stroke();
+  } else if (scared) {
+    ctx.fillStyle = '#1d1633';
+    ctx.ellipse(s * 0.3, s * 0.38, s * 0.1, s * 0.13, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (worried) {
+    ctx.moveTo(s * 0.15, s * 0.38);
+    ctx.quadraticCurveTo(s * 0.22, s * 0.3, s * 0.3, s * 0.38);
+    ctx.quadraticCurveTo(s * 0.38, s * 0.46, s * 0.45, s * 0.38);
+    ctx.stroke();
+  } else {
+    ctx.arc(s * 0.3, s * 0.22, s * 0.15, 0.15 * Math.PI, 0.85 * Math.PI);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Each drawer paints one critter facing right at the origin, s = body size
+const DRAW = {
+  firefly(s, t, c, k) {
+    // Wings flap faster when scared
+    const flap = Math.sin(t * (k.fleeing ? 40 : 18) + k.phase) * 0.35;
+    ctx.fillStyle = 'rgba(215,235,255,0.55)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1;
+    [[-0.6, -0.6, -1.0], [-0.25, -0.8, -0.55]].forEach(([wx, wy, rot]) => {
+      ctx.beginPath();
+      ctx.ellipse(wx * s, wy * s, s * 0.42, s * 0.85, rot + flap, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    // Glowing tail
+    ctx.fillStyle = rgb(mix(c, WHITE, k.pulse(t) * 0.5));
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.95, s * 0.35, s * 0.7, s * 0.6, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#6b5a9e';
+    ctx.strokeStyle = '#3d3266';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Antennae
+    ctx.strokeStyle = '#3d3266';
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    [[0.15, -0.9, 0.3, -1.6], [0.5, -0.8, 0.95, -1.4]].forEach(([x1, y1, x2, y2]) => {
+      ctx.beginPath();
+      ctx.moveTo(x1 * s, y1 * s);
+      ctx.quadraticCurveTo(x1 * s, y2 * s, x2 * s, y2 * s);
+      ctx.stroke();
+      ctx.fillStyle = rgb(c);
+      ctx.beginPath();
+      ctx.arc(x2 * s, y2 * s, s * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    drawFace(k, s, t);
+  },
+
+  fish(s, t, c, k) {
+    const wag = Math.sin(t * (k.fleeing ? 25 : 8) + k.phase) * 0.3;
+    const dark = mix(c, BLACK, 0.2);
+
+    // Tail
+    ctx.save();
+    ctx.translate(-s * 0.85, 0);
+    ctx.rotate(wag);
+    ctx.fillStyle = rgb(dark);
+    ctx.beginPath();
+    ctx.moveTo(s * 0.1, 0);
+    ctx.quadraticCurveTo(-s * 0.4, -s * 0.9, -s * 0.75, -s * 0.75);
+    ctx.quadraticCurveTo(-s * 0.45, 0, -s * 0.75, s * 0.75);
+    ctx.quadraticCurveTo(-s * 0.4, s * 0.9, s * 0.1, 0);
+    ctx.fill();
+    ctx.restore();
+
+    // Top fin
+    ctx.fillStyle = rgb(dark);
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.5, -s * 0.65);
+    ctx.quadraticCurveTo(-s * 0.15, -s * 1.35, s * 0.35, -s * 0.75);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.35));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 1.05, s * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Clownfish stripes
+    if (k.kind === 'clownfish') {
+      ctx.save();
+      ctx.clip();
+      [[-0.62, 0.3], [0.98, 0.22]].forEach(([sx, w]) => {
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = '#2a1a10';
+        ctx.lineWidth = Math.max(1.5, s * 0.07);
+        ctx.beginPath();
+        ctx.ellipse(sx * s, 0, w * s, s * 1.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+      ctx.restore();
+      ctx.strokeStyle = rgb(mix(c, BLACK, 0.35));
+      ctx.lineWidth = 1.5;
+    }
+    ctx.stroke();
+
+    // Side fin
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.3));
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.3, s * 0.45, s * 0.3, s * 0.14, 0.5 + wag, 0, Math.PI * 2);
+    ctx.fill();
+    drawFace(k, s, t);
+  },
+
+  clownfish(s, t, c, k) { DRAW.fish(s, t, c, k); },
+
+  puffer(s, t, c, k) {
+    // Puffs up when scared
+    if (k.fleeing) ctx.scale(1.3, 1.3);
+    const dark = mix(c, BLACK, 0.3);
+
+    // Tail
+    const wag = Math.sin(t * 8 + k.phase) * 0.3;
+    ctx.save();
+    ctx.translate(-s * 0.95, 0);
+    ctx.rotate(wag);
+    ctx.fillStyle = rgb(dark);
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-s * 0.5, -s * 0.4);
+    ctx.lineTo(-s * 0.5, s * 0.4);
+    ctx.fill();
+    ctx.restore();
+
+    // Spikes
+    ctx.fillStyle = rgb(dark);
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - 0.1) * s * 0.95, Math.sin(a - 0.1) * s * 0.95);
+      ctx.lineTo(Math.cos(a) * s * 1.25, Math.sin(a) * s * 1.25);
+      ctx.lineTo(Math.cos(a + 0.1) * s * 0.95, Math.sin(a + 0.1) * s * 0.95);
+      ctx.fill();
+    }
+
+    // Round body with a pale belly
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(dark);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.6));
+    ctx.beginPath();
+    ctx.ellipse(0, s * 0.75, s * 1.1, s * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    drawFace(k, s, t);
+  },
+
+  jelly(s, t, c, k) {
+    // Wavy tentacles
+    ctx.strokeStyle = rgb(c, 0.75);
+    ctx.lineWidth = Math.max(2, s * 0.12);
+    ctx.lineCap = 'round';
+    const speed = k.fleeing ? 10 : 3;
+    for (let i = 0; i < 5; i++) {
+      const x0 = (-0.6 + i * 0.3) * s;
+      ctx.beginPath();
+      ctx.moveTo(x0, s * 0.3);
+      for (let j = 1; j <= 6; j++) {
+        ctx.lineTo(x0 + Math.sin(t * speed + i + j * 0.9) * s * 0.15, s * 0.3 + j * s * 0.22);
+      }
+      ctx.stroke();
+    }
+
+    // Dome with a scalloped edge
+    ctx.fillStyle = rgb(c, 0.9);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, s * 0.3, s * 1.05, Math.PI, 0);
+    for (let i = 0; i < 6; i++) {
+      const x1 = s * 1.05 - (i + 1) * s * 0.35;
+      ctx.quadraticCurveTo(x1 + s * 0.175, s * 0.5, x1, s * 0.3);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    // Shine
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.5, -s * 0.35, s * 0.18, s * 0.28, 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    drawFace(k, s, t, -0.3, 0);
+  },
+
+  octopus(s, t, c, k) {
+    const dark = mix(c, BLACK, 0.15);
+    // Curly arms
+    ctx.strokeStyle = rgb(dark);
+    ctx.lineWidth = s * 0.28;
+    ctx.lineCap = 'round';
+    const speed = k.fleeing ? 12 : 3;
+    for (let i = 0; i < 6; i++) {
+      const x0 = (-0.75 + i * 0.3) * s;
+      const sway = Math.sin(t * speed + i * 1.3) * s * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(x0, s * 0.4);
+      ctx.quadraticCurveTo(x0 + sway, s * 1.1, x0 + sway * 1.5 + (i < 3 ? -1 : 1) * s * 0.25, s * 1.35);
+      ctx.stroke();
+    }
+
+    // Head
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.35));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, -s * 0.1, s * 1.0, s * 0.95, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Spots
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.35));
+    [[-0.55, -0.6, 0.12], [-0.25, -0.8, 0.09], [0.6, -0.65, 0.1]].forEach(([x, y, r]) => {
+      ctx.beginPath();
+      ctx.arc(x * s, y * s, r * s, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  narwhal(s, t, c, k) {
+    const wag = Math.sin(t * (k.fleeing ? 20 : 5) + k.phase) * 0.25;
+
+    // Tail flukes
+    ctx.save();
+    ctx.translate(-s * 1.25, -s * 0.05);
+    ctx.rotate(wag);
+    ctx.fillStyle = rgb(mix(c, BLACK, 0.15));
+    ctx.beginPath();
+    ctx.moveTo(s * 0.15, 0);
+    ctx.quadraticCurveTo(-s * 0.3, -s * 0.2, -s * 0.55, -s * 0.5);
+    ctx.quadraticCurveTo(-s * 0.35, 0, -s * 0.55, s * 0.5);
+    ctx.quadraticCurveTo(-s * 0.3, s * 0.2, s * 0.15, 0);
+    ctx.fill();
+    ctx.restore();
+
+    // Horn
+    ctx.fillStyle = '#fff6d8';
+    ctx.strokeStyle = '#d8c690';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(s * 0.55, -s * 0.62);
+    ctx.lineTo(s * 1.45, -s * 1.45);
+    ctx.lineTo(s * 0.8, -s * 0.5);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Body with a pale belly
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.35));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, s * 1.35, s * 0.85, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.6));
+    ctx.beginPath();
+    ctx.ellipse(s * 0.1, s * 0.8, s * 1.4, s * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    // Flipper
+    ctx.fillStyle = rgb(mix(c, BLACK, 0.15));
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.2, s * 0.5, s * 0.35, s * 0.15, 0.6 + wag, 0, Math.PI * 2);
+    ctx.fill();
+    drawFace(k, s, t, 0.25, 0);
+  },
+};
+
+// Little twinkling stars around rares so they stand out in every scene
+function drawSparkles(x, y, s, t) {
+  ctx.fillStyle = 'rgba(255,255,220,0.9)';
+  for (let i = 0; i < 3; i++) {
+    const a = t * 1.5 + i * Math.PI * 2 / 3;
+    const px = x + Math.cos(a) * s * 1.9, py = y + Math.sin(a) * s * 1.6;
+    const r = s * 0.25 * (0.6 + 0.4 * Math.sin(t * 5 + i));
+    ctx.beginPath();
+    ctx.moveTo(px, py - r);
+    ctx.quadraticCurveTo(px, py, px + r, py);
+    ctx.quadraticCurveTo(px, py, px, py + r);
+    ctx.quadraticCurveTo(px, py, px - r, py);
+    ctx.quadraticCurveTo(px, py, px, py - r);
+    ctx.fill();
+  }
+}
+
+// ---- Critters ----
+class Critter {
+  constructor(spec, rare = null) {
+    this.kind = spec.kind;
+    this.baseColor = spec.color;
     this.rare = rare;
     this.born = performance.now();
     this.collecting = false;
     this.done = false;
     const fromLeft = Math.random() < 0.5;
-    this.x = fromLeft ? -20 : W + 20;
-    this.y = H * (0.4 + Math.random() * 0.4);
-    this.homeX = W * (0.08 + Math.random() * 0.8);
-    this.homeY = H * (0.35 + Math.random() * 0.5);
+    const [x0, x1, y0, y1] = scene.home;
+    this.x = fromLeft ? -40 : W + 40;
+    this.y = H * (y0 + Math.random() * (y1 - y0));
+    this.homeX = W * (x0 + Math.random() * (x1 - x0));
+    this.homeY = H * (y0 + Math.random() * (y1 - y0));
     this.vx = 0; this.vy = 0;
     this.phase = Math.random() * Math.PI * 2;
     this.blink = 1.5 + Math.random() * 2;
-    this.size = rare ? 15 : 9 + Math.random() * 4;
+    this.size = rare ? scene.rareSize : scene.size[0] + Math.random() * (scene.size[1] - scene.size[0]);
     this.dir = fromLeft ? 1 : -1;
     this.nervous = 0;
+    this.mood = 'happy';
     this.alpha = 0;
     this.fleeing = false;
   }
@@ -519,168 +1047,55 @@ class Firefly {
     this.y += this.vy * dt;
   }
   get gone() {
-    return this.done || this.alpha <= 0 && this.fleeing || this.x < -100 || this.x > W + 100 || this.y < -100;
+    return this.done || this.alpha <= 0 && this.fleeing || this.x < -150 || this.x > W + 150 || this.y < -150;
   }
   color(t) {
-    return !this.rare ? [220, 255, 90] : this.rare.color || rainbow(t);
+    return this.baseColor || rainbow(t);
   }
   pulse(t) {
     // Rare fireflies glow steadily so they stand out
     return this.rare ? 0.8 + 0.2 * Math.sin(t * 3 + this.phase) : 0.55 + 0.45 * Math.sin(t * this.blink + this.phase);
   }
-  // Soft light around the tail (drawn with 'lighter' blending)
+  // Soft light around a firefly's tail (drawn with 'lighter' blending)
   drawGlow(t) {
-    if (Math.abs(this.vx) > 5) this.dir = this.vx < 0 ? -1 : 1;
     const s = this.size;
     const gx = this.x - this.dir * s * 0.95, gy = this.y + s * 0.35;
     const glow = this.pulse(t) * Math.max(0, this.alpha);
-    const [cr, cg, cb] = this.color(t);
+    const c = this.color(t);
     const r = s * (this.rare ? 5 : 4);
     const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
     grad.addColorStop(0, `rgba(255,255,230,${glow})`);
-    grad.addColorStop(0.2, `rgba(${cr},${cg},${cb},${glow * 0.6})`);
-    grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    grad.addColorStop(0.2, rgb(c, glow * 0.6));
+    grad.addColorStop(1, rgb(c, 0));
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(gx, gy, r, 0, Math.PI * 2);
     ctx.fill();
   }
-  // The little character: wings, tail, body, antennae and face
   drawBody(t) {
-    const s = this.size;
-    const [cr, cg, cb] = this.color(t);
-    const glow = this.pulse(t);
+    if (Math.abs(this.vx) > 5) this.dir = this.vx < 0 ? -1 : 1;
     // Sad during the yellow warning; worried when it's just getting close to the line
-    const scared = this.fleeing;
-    const sad = !scared && warnProgress > 0;
-    const worried = !scared && !sad && this.nervous > 0.4;
-
+    this.mood = this.fleeing ? 'scared' : warnProgress > 0 ? 'sad' : this.nervous > 0.4 ? 'worried' : 'happy';
     ctx.save();
     ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha));
     ctx.translate(this.x, this.y);
     ctx.scale(this.dir, 1);
-
-    // Wings flap faster when scared
-    const flap = Math.sin(t * (scared ? 40 : 18) + this.phase) * 0.35;
-    ctx.fillStyle = 'rgba(215,235,255,0.55)';
-    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-    ctx.lineWidth = 1;
-    [[-0.6, -0.6, -1.0], [-0.25, -0.8, -0.55]].forEach(([wx, wy, rot]) => {
-      ctx.beginPath();
-      ctx.ellipse(wx * s, wy * s, s * 0.42, s * 0.85, rot + flap, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.stroke();
-    });
-
-    // Glowing tail
-    ctx.fillStyle = `rgb(${Math.round(cr + (255 - cr) * glow * 0.5)},${Math.round(cg + (255 - cg) * glow * 0.5)},${Math.round(cb + (255 - cb) * glow * 0.5)})`;
-    ctx.beginPath();
-    ctx.ellipse(-s * 0.95, s * 0.35, s * 0.7, s * 0.6, -0.3, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Body
-    ctx.fillStyle = '#6b5a9e';
-    ctx.strokeStyle = '#3d3266';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.arc(0, 0, s, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    // Antennae
-    ctx.strokeStyle = '#3d3266';
-    ctx.lineWidth = Math.max(1.5, s * 0.1);
-    [[0.15, -0.9, 0.3, -1.6], [0.5, -0.8, 0.95, -1.4]].forEach(([x1, y1, x2, y2]) => {
-      ctx.beginPath();
-      ctx.moveTo(x1 * s, y1 * s);
-      ctx.quadraticCurveTo(x1 * s, y2 * s, x2 * s, y2 * s);
-      ctx.stroke();
-      ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
-      ctx.beginPath();
-      ctx.arc(x2 * s, y2 * s, s * 0.14, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Rosy cheeks
-    ctx.fillStyle = 'rgba(255,140,170,0.65)';
-    [-0.2, 0.78].forEach(bx => {
-      ctx.beginPath();
-      ctx.ellipse(bx * s, s * 0.3, s * 0.17, s * 0.1, 0, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Eyes: blink every few seconds, go wide when scared
-    const blinking = !scared && (t + this.phase * 3) % 4 < 0.15;
-    [0.05, 0.55].forEach(ex => {
-      const x = ex * s, y = -s * 0.15;
-      if (blinking) {
-        ctx.strokeStyle = '#1d1633';
-        ctx.lineWidth = Math.max(1.5, s * 0.08);
-        ctx.beginPath();
-        ctx.arc(x, y, s * 0.2, 0.15 * Math.PI, 0.85 * Math.PI);
-        ctx.stroke();
-        return;
-      }
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(x, y, s * (scared ? 0.33 : 0.29), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#1d1633';
-      ctx.beginPath();
-      ctx.arc(x + s * 0.04, y + s * 0.03, s * (scared ? 0.1 : 0.2), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(x + s * 0.1, y - s * 0.06, s * 0.07, 0, Math.PI * 2);
-      ctx.fill();
-    });
-
-    // Sad eyebrows, slanting down toward the outside
-    if (sad) {
-      ctx.strokeStyle = '#1d1633';
-      ctx.lineWidth = Math.max(1.2, s * 0.08);
-      [[0.05, -1], [0.55, 1]].forEach(([ex, side]) => {
-        ctx.beginPath();
-        ctx.moveTo(ex * s + side * s * 0.2, -s * 0.5);
-        ctx.lineTo(ex * s - side * s * 0.2, -s * 0.62);
-        ctx.stroke();
-      });
-    }
-
-    // Mouth: smile, frown when sad, wobbly when worried, "o" when scared
-    ctx.strokeStyle = '#1d1633';
-    ctx.lineWidth = Math.max(1.2, s * 0.08);
-    ctx.beginPath();
-    if (sad) {
-      ctx.arc(s * 0.3, s * 0.5, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
-      ctx.stroke();
-    } else if (scared) {
-      ctx.fillStyle = '#1d1633';
-      ctx.ellipse(s * 0.3, s * 0.38, s * 0.1, s * 0.13, 0, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (worried) {
-      ctx.moveTo(s * 0.15, s * 0.38);
-      ctx.quadraticCurveTo(s * 0.22, s * 0.3, s * 0.3, s * 0.38);
-      ctx.quadraticCurveTo(s * 0.38, s * 0.46, s * 0.45, s * 0.38);
-      ctx.stroke();
-    } else {
-      ctx.arc(s * 0.3, s * 0.22, s * 0.15, 0.15 * Math.PI, 0.85 * Math.PI);
-      ctx.stroke();
-    }
+    DRAW[this.kind](this.size, t, this.color(t), this);
     ctx.restore();
+    if (this.rare && !this.fleeing) drawSparkles(this.x, this.y, this.size, t);
   }
 }
 
-let fireflies = [], lastSpawn = 0, lastRareCheck = 0, lastFrame = performance.now();
+let critters = [], lastSpawn = 0, lastRareCheck = 0, lastFrame = performance.now();
 
 // Only one rare at a time; longer quiet unlocks rarer kinds
 function maybeSpawnRare(streak) {
-  if (fireflies.some(f => f.rare && !f.fleeing && !f.done)) return;
-  const unlocked = RARES.filter(r => streak >= r.quietSec * 1000);
+  if (critters.some(c => c.rare && !c.fleeing && !c.done)) return;
+  const unlocked = scene.rares.filter(r => streak >= r.quietSec * 1000);
   if (!unlocked.length || Math.random() > RARE_CHANCE) return;
   let roll = Math.random() * unlocked.reduce((sum, r) => sum + r.weight, 0);
-  const pick = unlocked.find(r => (roll -= r.weight) < 0) || unlocked[0];
-  fireflies.push(new Firefly(pick));
+  const choice = unlocked.find(r => (roll -= r.weight) < 0) || unlocked[0];
+  critters.push(new Critter(choice, choice));
 }
 
 function loop(now) {
@@ -693,36 +1108,40 @@ function loop(now) {
     updateState(now);
   }
 
-  // New fireflies arrive while it stays quiet
+  // New critters arrive while it stays quiet
   if (analyser && !loud && now - lastScare > 2000 && now - lastSpawn > 1200 &&
-      fireflies.filter(f => !f.fleeing).length < MAX_FIREFLIES) {
-    fireflies.push(new Firefly());
+      critters.filter(c => !c.fleeing).length < MAX_CRITTERS) {
+    critters.push(new Critter(scene.common()));
     lastSpawn = now;
   }
   if (analyser && !loud && now - lastRareCheck > RARE_CHECK_MS) {
     lastRareCheck = now;
     maybeSpawnRare(now - quietStart);
   }
-  fireflies.forEach(f => {
-    if (f.rare && !f.fleeing && !f.collecting && now - f.born > RARE_CATCH_MS) f.collect();
+  critters.forEach(c => {
+    if (c.rare && !c.fleeing && !c.collecting && now - c.born > RARE_CATCH_MS) c.collect();
   });
 
-  // Fireflies get more and more worried as the warning time runs out
+  // Critters get more and more worried as the warning time runs out
   const nervous = warnProgress > 0 ? 0.6 + 0.4 * warnProgress : Math.max(0, Math.min(1, (level - (threshold - 12)) / 12));
-  fireflies.forEach(f => f.update(dt, t, loud ? 0 : nervous));
-  fireflies = fireflies.filter(f => !f.gone);
+  critters.forEach(c => c.update(dt, t, loud ? 0 : nervous));
+  critters = critters.filter(c => !c.gone);
 
   ctx.drawImage(background, 0, 0, W, H);
-  ctx.globalCompositeOperation = 'lighter';
-  fireflies.forEach(f => f.drawGlow(t));
-  ctx.globalCompositeOperation = 'source-over';
-  fireflies.forEach(f => f.drawBody(t));
+  if (scene.ambient) scene.ambient(t);
+  if (scene.glow) {
+    ctx.globalCompositeOperation = 'lighter';
+    critters.forEach(c => c.drawGlow(t));
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  critters.forEach(c => c.drawBody(t));
 
   requestAnimationFrame(loop);
 }
 
 window.addEventListener('resize', resize);
 resize();
+applyScene();
 requestAnimationFrame(loop);
 </script>
 </body>
