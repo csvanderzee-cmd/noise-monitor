@@ -550,7 +550,10 @@ class Firefly {
     const s = this.size;
     const [cr, cg, cb] = this.color(t);
     const glow = this.pulse(t);
-    const scared = this.fleeing, worried = !scared && this.nervous > 0.4;
+    // Sad during the yellow warning; worried when it's just getting close to the line
+    const scared = this.fleeing;
+    const sad = !scared && warnProgress > 0;
+    const worried = !scared && !sad && this.nervous > 0.4;
 
     ctx.save();
     ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha));
@@ -632,11 +635,26 @@ class Firefly {
       ctx.fill();
     });
 
-    // Mouth: smile, wobbly when worried, "o" when scared
+    // Sad eyebrows, slanting down toward the outside
+    if (sad) {
+      ctx.strokeStyle = '#1d1633';
+      ctx.lineWidth = Math.max(1.2, s * 0.08);
+      [[0.05, -1], [0.55, 1]].forEach(([ex, side]) => {
+        ctx.beginPath();
+        ctx.moveTo(ex * s + side * s * 0.2, -s * 0.5);
+        ctx.lineTo(ex * s - side * s * 0.2, -s * 0.62);
+        ctx.stroke();
+      });
+    }
+
+    // Mouth: smile, frown when sad, wobbly when worried, "o" when scared
     ctx.strokeStyle = '#1d1633';
     ctx.lineWidth = Math.max(1.2, s * 0.08);
     ctx.beginPath();
-    if (scared) {
+    if (sad) {
+      ctx.arc(s * 0.3, s * 0.5, s * 0.15, 1.15 * Math.PI, 1.85 * Math.PI);
+      ctx.stroke();
+    } else if (scared) {
       ctx.fillStyle = '#1d1633';
       ctx.ellipse(s * 0.3, s * 0.38, s * 0.1, s * 0.13, 0, 0, Math.PI * 2);
       ctx.fill();
