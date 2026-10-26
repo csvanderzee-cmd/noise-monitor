@@ -436,7 +436,9 @@ class Firefly {
     this.vx = 0; this.vy = 0;
     this.phase = Math.random() * Math.PI * 2;
     this.blink = 1.5 + Math.random() * 2;
-    this.size = rare ? 6 : 3 + Math.random() * 3;
+    this.size = rare ? 15 : 9 + Math.random() * 4;
+    this.dir = fromLeft ? 1 : -1;
+    this.nervous = 0;
     this.alpha = 0;
     this.fleeing = false;
   }
@@ -472,6 +474,7 @@ class Firefly {
       return;
     }
     this.alpha = Math.min(1, this.alpha + dt * 0.6);
+    this.nervous = nervous;
     // Gentle wandering around a home spot; jittery when it's getting noisy
     const tx = this.homeX + Math.sin(t * 0.5 + this.phase) * 40;
     const ty = this.homeY + Math.cos(t * 0.37 + this.phase) * 25;
@@ -484,20 +487,135 @@ class Firefly {
   get gone() {
     return this.done || this.alpha <= 0 && this.fleeing || this.x < -100 || this.x > W + 100 || this.y < -100;
   }
-  draw(t) {
-    // Rare fireflies glow steadily and bigger so they stand out
-    const pulse = this.rare ? 0.8 + 0.2 * Math.sin(t * 3 + this.phase) : 0.55 + 0.45 * Math.sin(t * this.blink + this.phase);
-    const glow = pulse * Math.max(0, this.alpha);
-    const [cr, cg, cb] = !this.rare ? [220, 255, 90] : this.rare.color || rainbow(t);
-    const r = this.size * (this.rare ? 9 : 6);
-    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, r);
+  color(t) {
+    return !this.rare ? [220, 255, 90] : this.rare.color || rainbow(t);
+  }
+  pulse(t) {
+    // Rare fireflies glow steadily so they stand out
+    return this.rare ? 0.8 + 0.2 * Math.sin(t * 3 + this.phase) : 0.55 + 0.45 * Math.sin(t * this.blink + this.phase);
+  }
+  // Soft light around the tail (drawn with 'lighter' blending)
+  drawGlow(t) {
+    if (Math.abs(this.vx) > 5) this.dir = this.vx < 0 ? -1 : 1;
+    const s = this.size;
+    const gx = this.x - this.dir * s * 0.95, gy = this.y + s * 0.35;
+    const glow = this.pulse(t) * Math.max(0, this.alpha);
+    const [cr, cg, cb] = this.color(t);
+    const r = s * (this.rare ? 5 : 4);
+    const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, r);
     grad.addColorStop(0, `rgba(255,255,230,${glow})`);
-    grad.addColorStop(0.2, `rgba(${cr},${cg},${cb},${glow * 0.7})`);
+    grad.addColorStop(0.2, `rgba(${cr},${cg},${cb},${glow * 0.6})`);
     grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+    ctx.arc(gx, gy, r, 0, Math.PI * 2);
     ctx.fill();
+  }
+  // The little character: wings, tail, body, antennae and face
+  drawBody(t) {
+    const s = this.size;
+    const [cr, cg, cb] = this.color(t);
+    const glow = this.pulse(t);
+    const scared = this.fleeing, worried = !scared && this.nervous > 0.4;
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha));
+    ctx.translate(this.x, this.y);
+    ctx.scale(this.dir, 1);
+
+    // Wings flap faster when scared
+    const flap = Math.sin(t * (scared ? 40 : 18) + this.phase) * 0.35;
+    ctx.fillStyle = 'rgba(215,235,255,0.55)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1;
+    [[-0.6, -0.6, -1.0], [-0.25, -0.8, -0.55]].forEach(([wx, wy, rot]) => {
+      ctx.beginPath();
+      ctx.ellipse(wx * s, wy * s, s * 0.42, s * 0.85, rot + flap, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+
+    // Glowing tail
+    ctx.fillStyle = `rgb(${Math.round(cr + (255 - cr) * glow * 0.5)},${Math.round(cg + (255 - cg) * glow * 0.5)},${Math.round(cb + (255 - cb) * glow * 0.5)})`;
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.95, s * 0.35, s * 0.7, s * 0.6, -0.3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Body
+    ctx.fillStyle = '#6b5a9e';
+    ctx.strokeStyle = '#3d3266';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(0, 0, s, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    // Antennae
+    ctx.strokeStyle = '#3d3266';
+    ctx.lineWidth = Math.max(1.5, s * 0.1);
+    [[0.15, -0.9, 0.3, -1.6], [0.5, -0.8, 0.95, -1.4]].forEach(([x1, y1, x2, y2]) => {
+      ctx.beginPath();
+      ctx.moveTo(x1 * s, y1 * s);
+      ctx.quadraticCurveTo(x1 * s, y2 * s, x2 * s, y2 * s);
+      ctx.stroke();
+      ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
+      ctx.beginPath();
+      ctx.arc(x2 * s, y2 * s, s * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Rosy cheeks
+    ctx.fillStyle = 'rgba(255,140,170,0.65)';
+    [-0.2, 0.78].forEach(bx => {
+      ctx.beginPath();
+      ctx.ellipse(bx * s, s * 0.3, s * 0.17, s * 0.1, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Eyes: blink every few seconds, go wide when scared
+    const blinking = !scared && (t + this.phase * 3) % 4 < 0.15;
+    [0.05, 0.55].forEach(ex => {
+      const x = ex * s, y = -s * 0.15;
+      if (blinking) {
+        ctx.strokeStyle = '#1d1633';
+        ctx.lineWidth = Math.max(1.5, s * 0.08);
+        ctx.beginPath();
+        ctx.arc(x, y, s * 0.2, 0.15 * Math.PI, 0.85 * Math.PI);
+        ctx.stroke();
+        return;
+      }
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(x, y, s * (scared ? 0.33 : 0.29), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#1d1633';
+      ctx.beginPath();
+      ctx.arc(x + s * 0.04, y + s * 0.03, s * (scared ? 0.1 : 0.2), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(x + s * 0.1, y - s * 0.06, s * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // Mouth: smile, wobbly when worried, "o" when scared
+    ctx.strokeStyle = '#1d1633';
+    ctx.lineWidth = Math.max(1.2, s * 0.08);
+    ctx.beginPath();
+    if (scared) {
+      ctx.fillStyle = '#1d1633';
+      ctx.ellipse(s * 0.3, s * 0.38, s * 0.1, s * 0.13, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (worried) {
+      ctx.moveTo(s * 0.15, s * 0.38);
+      ctx.quadraticCurveTo(s * 0.22, s * 0.3, s * 0.3, s * 0.38);
+      ctx.quadraticCurveTo(s * 0.38, s * 0.46, s * 0.45, s * 0.38);
+      ctx.stroke();
+    } else {
+      ctx.arc(s * 0.3, s * 0.22, s * 0.15, 0.15 * Math.PI, 0.85 * Math.PI);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 }
 
@@ -543,8 +661,9 @@ function loop(now) {
 
   ctx.drawImage(background, 0, 0, W, H);
   ctx.globalCompositeOperation = 'lighter';
-  fireflies.forEach(f => f.draw(t));
+  fireflies.forEach(f => f.drawGlow(t));
   ctx.globalCompositeOperation = 'source-over';
+  fireflies.forEach(f => f.drawBody(t));
 
   requestAnimationFrame(loop);
 }
