@@ -11,7 +11,7 @@
     background: #0b1530; color: #fff;
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   }
-  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
 
   /* Controls (above the start screen so the scene can be picked before starting) */
   #controls {
@@ -33,10 +33,13 @@
     font: inherit; color: #0b1530; background: #ffd84d; border: 0;
     padding: 6px 14px; border-radius: 8px; cursor: pointer;
   }
-  #scenePick {
+  #scenePick, #classPick {
     font: inherit; color: #0b1530; background: #fff; border: 0;
     padding: 5px 8px; border-radius: 8px; cursor: pointer;
   }
+  #activityBtns { gap: 6px; }
+  #activityBtns button { background: rgba(255,255,255,0.15); color: #fff; }
+  #activityBtns button.active { background: #ffd84d; color: #0b1530; font-weight: 700; }
   .toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
   .toggle input { width: 18px; height: 18px; accent-color: #ffd84d; }
   .hint { opacity: 0.7; font-size: 13px; }
@@ -107,6 +110,30 @@
   }
   .slot small { display: block; opacity: 0.7; font-size: 12px; }
   .slot.caught b { color: #fff; }
+  .slot.caught { cursor: pointer; border-radius: 8px; margin: 4px -6px; padding: 4px 6px; }
+  .slot.caught:hover { background: rgba(255,255,255,0.12); }
+
+  /* Gallery card for a caught rare */
+  #gallery {
+    position: fixed; inset: 0; z-index: 12;
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+    background: rgba(5, 10, 25, 0.7);
+  }
+  #gallery[hidden] { display: none; }
+  #gallery .card {
+    position: relative; width: min(420px, 100%); padding: 20px 22px 24px;
+    border-radius: 20px; background: #14224a; text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  #galleryCanvas { width: 100%; height: 240px; border-radius: 14px; display: block; }
+  #gallery h2 { margin: 16px 0 4px; font-size: 26px; color: #ffd84d; }
+  #galleryCount { margin: 0 0 12px; opacity: 0.75; }
+  #galleryFact { margin: 0; font-size: 18px; line-height: 1.45; }
+  #galleryClose {
+    position: absolute; top: 10px; right: 10px; width: 34px; height: 34px;
+    border: 0; border-radius: 50%; font-size: 16px; cursor: pointer;
+    color: #fff; background: rgba(255,255,255,0.15);
+  }
   #resetJar {
     margin-top: 4px; font: inherit; font-size: 12px; color: #fff; opacity: 0.6;
     background: none; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px;
@@ -145,6 +172,13 @@
     <select id="scenePick"></select>
   </div>
   <div class="group">
+    <label for="classPick">Class:</label>
+    <select id="classPick"></select>
+  </div>
+  <div class="group" id="activityBtns">
+    <span>Activity:</span>
+  </div>
+  <div class="group">
     <label for="threshold">Noise limit: <b id="thresholdVal">70</b></label>
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
     <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
@@ -158,11 +192,21 @@
 </header>
 
 <div id="meter"><div id="meterFill"></div><div id="meterMark"></div><span id="dbReadout">--</span></div>
-<div id="stats">Quiet time <b id="streak">0:00</b> &nbsp;·&nbsp; Best <b id="best">0:00</b></div>
+<div id="stats"><span id="activityLabel"></span> &nbsp;·&nbsp; Quiet time <b id="streak">0:00</b> &nbsp;·&nbsp; Best <b id="best">0:00</b></div>
 <div id="jar"><h2 id="jarTitle"></h2><div id="slots"></div><button id="resetJar">Empty jar</button></div>
 <div id="toast"></div>
 <div id="warnEdge"></div>
 <div id="alarm"><div>Too loud!</div></div>
+
+<div id="gallery" hidden>
+  <div class="card">
+    <button id="galleryClose" aria-label="Close">✕</button>
+    <canvas id="galleryCanvas"></canvas>
+    <h2 id="galleryName"></h2>
+    <p id="galleryCount"></p>
+    <p id="galleryFact"></p>
+  </div>
+</div>
 
 <div id="start">
   <h1 id="startTitle"></h1>
@@ -188,7 +232,8 @@ const LIFE_MIN_MS = 20000;         // regular critters also leave on their own a
 const LIFE_RANGE_MS = 25000;       // so there's always some coming and going
 
 const $ = id => document.getElementById(id);
-const canvas = $('scene'), ctx = canvas.getContext('2d');
+const canvas = $('scene');
+let ctx = canvas.getContext('2d');   // swapped to the gallery canvas while drawing a gallery card
 const slider = $('threshold'), soundToggle = $('soundToggle'), warnSlider = $('warnTime');
 
 const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
@@ -212,11 +257,16 @@ const SCENES = {
     glow: true,
     common: () => ({ kind: 'firefly', color: [220, 255, 90] }),
     rares: [
-      { id: 'blue',    name: 'Blue Glimmer',   kind: 'firefly', color: [110, 190, 255], quietSec: 30,  weight: 5 },
-      { id: 'pink',    name: 'Rose Spark',     kind: 'firefly', color: [255, 120, 190], quietSec: 60,  weight: 4 },
-      { id: 'purple',  name: 'Violet Wisp',    kind: 'firefly', color: [185, 120, 255], quietSec: 120, weight: 3 },
-      { id: 'gold',    name: 'Golden Glow',    kind: 'firefly', color: [255, 190, 40],  quietSec: 180, weight: 2 },
-      { id: 'rainbow', name: 'Rainbow Dancer', kind: 'firefly', color: null,            quietSec: 300, weight: 1 },
+      { id: 'blue',    name: 'Blue Glimmer',   kind: 'firefly', color: [110, 190, 255], quietSec: 30,  weight: 5,
+        fact: 'Fireflies are not really flies. They are a kind of beetle!' },
+      { id: 'pink',    name: 'Rose Spark',     kind: 'firefly', color: [255, 120, 190], quietSec: 60,  weight: 4,
+        fact: "A firefly's glow is called bioluminescence. It makes light with almost no heat." },
+      { id: 'purple',  name: 'Violet Wisp',    kind: 'firefly', color: [185, 120, 255], quietSec: 120, weight: 3,
+        fact: 'Fireflies flash in patterns to talk to each other. Each kind has its own special pattern.' },
+      { id: 'gold',    name: 'Golden Glow',    kind: 'firefly', color: [255, 190, 40],  quietSec: 180, weight: 2,
+        fact: 'In the Great Smoky Mountains, some fireflies all flash at the same time!' },
+      { id: 'rainbow', name: 'Rainbow Dancer', kind: 'firefly', color: null,            quietSec: 300, weight: 1,
+        fact: 'There are more than 2,000 different kinds of fireflies in the world.' },
     ],
     background: drawMeadow,
   },
@@ -232,11 +282,16 @@ const SCENES = {
     glow: false,
     common: () => ({ kind: 'fish', color: pick([[255, 170, 90], [120, 200, 255], [255, 150, 190], [140, 225, 160], [255, 220, 100], [190, 160, 255]]) }),
     rares: [
-      { id: 'clown',   name: 'Clownfish',       kind: 'clownfish', color: [255, 125, 35],  quietSec: 30,  weight: 5 },
-      { id: 'puffer',  name: 'Puffy Pufferfish', kind: 'puffer',   color: [255, 210, 70],  quietSec: 60,  weight: 4 },
-      { id: 'jelly',   name: 'Pink Jellyfish',  kind: 'jelly',     color: [255, 140, 210], quietSec: 120, weight: 3 },
-      { id: 'octopus', name: 'Purple Octopus',  kind: 'octopus',   color: [165, 105, 225], quietSec: 180, weight: 2 },
-      { id: 'narwhal', name: 'Rainbow Narwhal', kind: 'narwhal',   color: null,            quietSec: 300, weight: 1 },
+      { id: 'clown',   name: 'Clownfish',       kind: 'clownfish', color: [255, 125, 35],  quietSec: 30,  weight: 5,
+        fact: 'Clownfish live safely inside stinging sea anemones. A slimy coat protects them!' },
+      { id: 'puffer',  name: 'Puffy Pufferfish', kind: 'puffer',   color: [255, 210, 70],  quietSec: 60,  weight: 4,
+        fact: 'Pufferfish gulp lots of water to puff up so they look too big to eat.' },
+      { id: 'jelly',   name: 'Pink Jellyfish',  kind: 'jelly',     color: [255, 140, 210], quietSec: 120, weight: 3,
+        fact: 'Jellyfish have no brain, no heart and no bones!' },
+      { id: 'octopus', name: 'Purple Octopus',  kind: 'octopus',   color: [165, 105, 225], quietSec: 180, weight: 2,
+        fact: 'An octopus has three hearts and blue blood!' },
+      { id: 'narwhal', name: 'Rainbow Narwhal', kind: 'narwhal',   color: null,            quietSec: 300, weight: 1,
+        fact: "A narwhal's horn is really a long tooth that can grow up to 10 feet long!" },
     ],
     background: drawAquarium,
     ambient: aquariumAmbient,
@@ -253,11 +308,16 @@ const SCENES = {
     glow: false,
     common: () => ({ kind: 'ghost', color: pick([[245, 245, 255], [232, 222, 255], [218, 248, 235]]) }),
     rares: [
-      { id: 'pumpkin', name: "Jack-o'-Lantern",  kind: 'pumpkin', color: [255, 140, 30],  quietSec: 30,  weight: 5 },
-      { id: 'bat',     name: 'Batty Bat',        kind: 'bat',     color: [130, 105, 175], quietSec: 60,  weight: 4 },
-      { id: 'cat',     name: "Witch's Cat",      kind: 'cat',     color: [95, 85, 125],   quietSec: 120, weight: 3 },
-      { id: 'zombie',  name: 'Friendly Zombie',  kind: 'zombie',  color: [150, 205, 120], quietSec: 180, weight: 2 },
-      { id: 'rghost',  name: 'Rainbow Ghost',    kind: 'ghost',   color: null,            quietSec: 300, weight: 1 },
+      { id: 'pumpkin', name: "Jack-o'-Lantern",  kind: 'pumpkin', color: [255, 140, 30],  quietSec: 30,  weight: 5,
+        fact: "The first jack-o'-lanterns in Ireland were carved from turnips, not pumpkins!" },
+      { id: 'bat',     name: 'Batty Bat',        kind: 'bat',     color: [130, 105, 175], quietSec: 60,  weight: 4,
+        fact: 'Bats are the only mammals that can really fly.' },
+      { id: 'cat',     name: "Witch's Cat",      kind: 'cat',     color: [95, 85, 125],   quietSec: 120, weight: 3,
+        fact: 'A group of cats is called a clowder!' },
+      { id: 'zombie',  name: 'Friendly Zombie',  kind: 'zombie',  color: [150, 205, 120], quietSec: 180, weight: 2,
+        fact: "Zombies are make-believe, so this one just wants to be your friend!" },
+      { id: 'rghost',  name: 'Rainbow Ghost',    kind: 'ghost',   color: null,            quietSec: 300, weight: 1,
+        fact: 'Halloween began more than 2,000 years ago as a Celtic festival called Samhain.' },
     ],
     background: drawHalloween,
     ambient: halloweenAmbient,
@@ -277,46 +337,103 @@ const SCENES = {
     glow: false,
     common: () => ({ kind: 'flower', color: pick([[255, 150, 190], [255, 220, 90], [190, 160, 255], [255, 255, 255], [255, 170, 100], [140, 200, 255]]) }),
     rares: [
-      { id: 'sunflower', name: 'Sunflower',        kind: 'sunflower', color: [255, 200, 40],  quietSec: 30,  weight: 5 },
-      { id: 'tulip',     name: 'Pink Tulip',       kind: 'tulip',     color: [255, 120, 170], quietSec: 60,  weight: 4 },
-      { id: 'star',      name: 'Blue Star Flower', kind: 'star',      color: [100, 160, 255], quietSec: 120, weight: 3 },
-      { id: 'rose',      name: 'Golden Rose',      kind: 'rose',      color: [255, 190, 40],  quietSec: 180, weight: 2 },
-      { id: 'rainbow',   name: 'Rainbow Bloom',    kind: 'flower',    color: null,            quietSec: 300, weight: 1 },
+      { id: 'sunflower', name: 'Sunflower',        kind: 'sunflower', color: [255, 200, 40],  quietSec: 30,  weight: 5,
+        fact: 'Young sunflowers turn to follow the sun across the sky during the day!' },
+      { id: 'tulip',     name: 'Pink Tulip',       kind: 'tulip',     color: [255, 120, 170], quietSec: 60,  weight: 4,
+        fact: 'Tulips keep growing even after they are cut and put in a vase.' },
+      { id: 'star',      name: 'Blue Star Flower', kind: 'star',      color: [100, 160, 255], quietSec: 120, weight: 3,
+        fact: "Bees can't see the color red, but they can see ultraviolet colors that people can't!" },
+      { id: 'rose',      name: 'Golden Rose',      kind: 'rose',      color: [255, 190, 40],  quietSec: 180, weight: 2,
+        fact: 'Roses are in the same plant family as apples, cherries and strawberries!' },
+      { id: 'rainbow',   name: 'Rainbow Bloom',    kind: 'flower',    color: null,            quietSec: 300, weight: 1,
+        fact: 'Some flowers have hidden patterns only bees can see, like arrows pointing to the nectar!' },
     ],
     background: drawGarden,
     ambient: gardenAmbient,
   },
 };
 
+// ---- Activities ----
+// Each activity remembers its own noise limit and warning time; moving a slider updates the current one
+const ACTIVITIES = {
+  silent:  { label: '🤫 Silent Work',  threshold: 55, warnSec: 2 },
+  partner: { label: '🗣️ Partner Talk', threshold: 68, warnSec: 3 },
+  group:   { label: '👥 Group Work',   threshold: 78, warnSec: 5 },
+};
+
+// ---- Classes ----
+// Period 1 keeps the collections saved before classes existed
+const CLASSES = [1, 2, 3, 4, 5, 6, 7].map(n => ({ id: 'p' + n, name: 'Period ' + n }));
+
 // ---- Saved settings ----
 // warnSec: how long it can stay over the line before the critters scatter
-let threshold = 70, soundOn = true, warnSec = 3, sceneId = 'meadow';
+let soundOn = true, sceneId = 'meadow', activity = 'partner', classId = 'p1';
+const presets = {};
+Object.entries(ACTIVITIES).forEach(([id, a]) => { presets[id] = { threshold: a.threshold, warnSec: a.warnSec }; });
 try {
   const saved = JSON.parse(localStorage.getItem('noiseMonitor') || '{}');
-  if (saved.threshold) threshold = saved.threshold;
   if (saved.soundOn === false) soundOn = false;
-  if (saved.warnSec) warnSec = saved.warnSec;
   if (SCENES[saved.scene]) sceneId = saved.scene;
+  if (ACTIVITIES[saved.activity]) activity = saved.activity;
+  if (CLASSES.some(c => c.id === saved.classId)) classId = saved.classId;
+  if (saved.presets) {
+    Object.keys(presets).forEach(id => Object.assign(presets[id], saved.presets[id]));
+  } else if (saved.threshold) {
+    // Settings saved before activities existed become Partner Talk's
+    presets.partner = { threshold: saved.threshold, warnSec: saved.warnSec || 3 };
+  }
 } catch (e) {}
 let scene = SCENES[sceneId];
+let threshold = presets[activity].threshold, warnSec = presets[activity].warnSec;
 
-slider.value = threshold;
 soundToggle.checked = soundOn;
-warnSlider.value = warnSec;
-$('warnTimeVal').textContent = warnSec;
 
 function save() {
-  try { localStorage.setItem('noiseMonitor', JSON.stringify({ threshold, soundOn, warnSec, scene: sceneId })); } catch (e) {}
+  try { localStorage.setItem('noiseMonitor', JSON.stringify({ soundOn, scene: sceneId, activity, presets, classId })); } catch (e) {}
 }
 function updateThresholdUI() {
   $('thresholdVal').textContent = threshold;
   $('meterMark').style.bottom = pct(threshold) + '%';
 }
-slider.addEventListener('input', () => { threshold = +slider.value; updateThresholdUI(); save(); });
+slider.addEventListener('input', () => {
+  threshold = presets[activity].threshold = +slider.value;
+  updateThresholdUI();
+  save();
+});
 warnSlider.addEventListener('input', () => {
-  warnSec = +warnSlider.value;
+  warnSec = presets[activity].warnSec = +warnSlider.value;
   $('warnTimeVal').textContent = warnSec;
   save();
+});
+
+const activityBtns = $('activityBtns');
+Object.entries(ACTIVITIES).forEach(([id, a]) => {
+  const btn = document.createElement('button');
+  btn.dataset.act = id;
+  btn.textContent = a.label;
+  btn.addEventListener('click', () => { activity = id; save(); applyActivity(); });
+  activityBtns.appendChild(btn);
+});
+
+function applyActivity() {
+  threshold = presets[activity].threshold;
+  warnSec = presets[activity].warnSec;
+  slider.value = threshold;
+  warnSlider.value = warnSec;
+  $('warnTimeVal').textContent = warnSec;
+  updateThresholdUI();
+  activityBtns.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.act === activity));
+  $('activityLabel').textContent = ACTIVITIES[activity].label;
+}
+
+const classPick = $('classPick');
+classPick.innerHTML = CLASSES.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+classPick.value = classId;
+classPick.addEventListener('change', () => {
+  classId = classPick.value;
+  best = 0;
+  save();
+  loadJar();
 });
 soundToggle.addEventListener('change', () => { soundOn = soundToggle.checked; save(); });
 $('fsBtn').addEventListener('click', () => {
@@ -325,7 +442,6 @@ $('fsBtn').addEventListener('click', () => {
 });
 
 const pct = db => Math.max(0, Math.min(100, (db - MIN_DB) / (MAX_DB - MIN_DB) * 100));
-updateThresholdUI();
 
 // ---- Scene picker ----
 const scenePick = $('scenePick');
@@ -350,12 +466,14 @@ function applyScene() {
   if (W) background = drawBackground();
 }
 
-// ---- Collection jar (one per scene) ----
+// ---- Collection jar (one per scene, per class) ----
 let jar = {};
+
+const jarStorageKey = () => scene.jarKey + (classId === 'p1' ? '' : '_' + classId);
 
 function loadJar() {
   jar = {};
-  try { jar = JSON.parse(localStorage.getItem(scene.jarKey) || '{}'); } catch (e) {}
+  try { jar = JSON.parse(localStorage.getItem(jarStorageKey()) || '{}'); } catch (e) {}
   renderJar();
 }
 
@@ -371,16 +489,17 @@ function renderJar() {
 }
 
 $('resetJar').addEventListener('click', () => {
-  if (!confirm(`Empty the ${scene.jarTitle.toLowerCase()}? This removes every rare the class has caught in this scene.`)) return;
+  const className = CLASSES.find(c => c.id === classId).name;
+  if (!confirm(`Empty ${className}'s ${scene.jarTitle.toLowerCase()}? This removes every rare ${className} has caught in this scene.`)) return;
   jar = {};
-  try { localStorage.removeItem(scene.jarKey); } catch (e) {}
+  try { localStorage.removeItem(jarStorageKey()); } catch (e) {}
   renderJar();
 });
 
 function addToJar(rare) {
   const isNew = !jar[rare.id];
   jar[rare.id] = (jar[rare.id] || 0) + 1;
-  try { localStorage.setItem(scene.jarKey, JSON.stringify(jar)); } catch (e) {}
+  try { localStorage.setItem(jarStorageKey(), JSON.stringify(jar)); } catch (e) {}
   renderJar();
   showToast(isNew ? `✨ New: ${rare.name}!` : `✨ Caught another ${rare.name}!`);
   if (soundOn && audioCtx) chime();
@@ -1702,10 +1821,10 @@ class Critter {
     ctx.arc(gx, gy, r, 0, Math.PI * 2);
     ctx.fill();
   }
-  drawBody(t) {
+  drawBody(t, mood) {
     if (Math.abs(this.vx) > 5) this.dir = this.vx < 0 ? -1 : 1;
     // Sad during the yellow warning; worried when it's just getting close to the line
-    this.mood = this.fleeing ? 'scared' : warnProgress > 0 ? 'sad' : this.nervous > 0.4 ? 'worried' : 'happy';
+    this.mood = mood || (this.fleeing ? 'scared' : warnProgress > 0 ? 'sad' : this.nervous > 0.4 ? 'worried' : 'happy');
     ctx.save();
     ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha));
     ctx.translate(this.x, this.y);
@@ -1830,8 +1949,72 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+// ---- Gallery: click a caught rare in the jar to see it up close ----
+const galleryCanvas = $('galleryCanvas');
+let galleryCtx, galleryCritter = null;
+
+$('slots').addEventListener('click', e => {
+  const slot = e.target.closest('.slot.caught');
+  if (slot) openGallery(slot.dataset.id);
+});
+
+function openGallery(id) {
+  const rare = scene.rares.find(r => r.id === id);
+  $('galleryName').textContent = rare.name;
+  $('galleryCount').textContent = `${CLASSES.find(c => c.id === classId).name} caught ×${jar[id] || 0}`;
+  $('galleryFact').textContent = rare.fact;
+  $('gallery').hidden = false;
+
+  const box = galleryCanvas.getBoundingClientRect();
+  galleryCanvas.width = box.width * dpr;
+  galleryCanvas.height = box.height * dpr;
+  galleryCtx = galleryCanvas.getContext('2d');
+  galleryCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  galleryCritter = new Critter(rare, rare);
+  Object.assign(galleryCritter, {
+    plant: false, alpha: 1, dir: 1, vx: 0,
+    x: box.width / 2, y: box.height / 2,
+    size: Math.min(box.width, box.height) * 0.17,
+  });
+  requestAnimationFrame(drawGallery);
+}
+
+function closeGallery() {
+  $('gallery').hidden = true;
+  galleryCritter = null;
+}
+$('galleryClose').addEventListener('click', closeGallery);
+$('gallery').addEventListener('click', e => { if (e.target.id === 'gallery') closeGallery(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGallery(); });
+
+function drawGallery(now) {
+  if (!galleryCritter) return;
+  const t = now / 1000;
+  const gw = galleryCanvas.width / dpr, gh = galleryCanvas.height / dpr;
+  const mainCtx = ctx;
+  ctx = galleryCtx;
+
+  // A slice of the scene's background behind the critter
+  const cw = W * 0.35, ch = cw * gh / gw;
+  const cx = (W - cw) / 2, cy = Math.max(0, Math.min(H - ch, H * 0.5 - ch / 2));
+  if (background.width) ctx.drawImage(background, cx * dpr, cy * dpr, cw * dpr, ch * dpr, 0, 0, gw, gh);
+
+  galleryCritter.y = gh / 2 + Math.sin(t * 2) * 6;
+  if (scene.glow) {
+    ctx.globalCompositeOperation = 'lighter';
+    galleryCritter.drawGlow(t);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  galleryCritter.drawBody(t, 'happy');
+
+  ctx = mainCtx;
+  requestAnimationFrame(drawGallery);
+}
+
 window.addEventListener('resize', resize);
 resize();
+applyActivity();
 applyScene();
 requestAnimationFrame(loop);
 </script>
