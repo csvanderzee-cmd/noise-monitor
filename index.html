@@ -34,7 +34,6 @@
     padding: 6px 14px; border-radius: 8px; cursor: pointer;
   }
   #controls { transition: opacity 0.3s, transform 0.3s; }
-  #controls button.small { padding: 4px 10px; }
   #controls button:disabled { opacity: 0.5; cursor: default; }
   #volume { width: 90px; accent-color: #ffd84d; }
 
@@ -206,7 +205,6 @@
   <div class="group">
     <label for="threshold">Noise limit: <b id="thresholdVal">70</b></label>
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
-    <button class="small" id="autoBtn" title="Listen to the room for 10 seconds of normal work and set the limit">Auto-set</button>
     <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
   </div>
   <div class="group">
@@ -750,36 +748,6 @@ function recordSample(now) {
   session.samples.push({ t: now - session.start, level, threshold, loud, warn: warnProgress > 0 });
 }
 
-// ---- Auto-set: listen to normal work for a while, then set the limit just above it ----
-const CALIBRATE_MS = 10000;
-const CALIBRATE_MARGIN = 8;        // limit sits this far above the loudest typical moments
-let calibrating = null;
-
-$('autoBtn').addEventListener('click', () => {
-  if (!analyser) { showToast('Press Start first, then Auto-set'); return; }
-  calibrating = { end: performance.now() + CALIBRATE_MS, samples: [] };
-  $('autoBtn').disabled = true;
-});
-
-function calibrate(now) {
-  calibrating.samples.push(level);
-  const secs = Math.ceil((calibrating.end - now) / 1000);
-  if (secs > 0) {
-    showToast(`👂 Listening to normal work… ${secs}`, 1500);
-    return;
-  }
-  const sorted = calibrating.samples.sort((a, b) => a - b);
-  const typicalPeak = sorted[Math.floor(sorted.length * 0.9)];
-  const limit = Math.max(40, Math.min(100, Math.round(typicalPeak + CALIBRATE_MARGIN)));
-  threshold = presets[activity].threshold = limit;
-  slider.value = limit;
-  updateThresholdUI();
-  save();
-  showToast(`✅ Noise limit set to ${limit} for ${ACTIVITIES[activity].label}`, 5000);
-  calibrating = null;
-  $('autoBtn').disabled = false;
-}
-
 // ---- Countdown timer ----
 const timerPick = $('timerPick');
 let timerEnd = 0, timerScatters = 0;
@@ -806,8 +774,7 @@ function updateTimer(now) {
 
 function updateState(now) {
   warnProgress = 0;
-  if (calibrating) calibrate(now);
-  if (level > threshold && !calibrating) {
+  if (level > threshold) {
     underSince = null;
     if (overSince === null) overSince = now;
     if (!loud) warnProgress = Math.min(1, (now - overSince) / (warnSec * 1000));
