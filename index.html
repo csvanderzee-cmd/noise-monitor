@@ -132,9 +132,9 @@
 
 <header id="controls">
   <div class="group">
-    <label for="threshold">Too loud above: <b id="thresholdVal">70</b> dB</label>
+    <label for="threshold">Noise limit: <b id="thresholdVal">70</b></label>
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
-    <span class="hint">(lower = more sensitive)</span>
+    <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
   </div>
   <div class="group">
     <label for="warnTime">Warning time: <b id="warnTimeVal">3</b> sec</label>
@@ -144,7 +144,7 @@
   <button id="fsBtn">Fullscreen</button>
 </header>
 
-<div id="meter"><div id="meterFill"></div><div id="meterMark"></div><span id="dbReadout">-- dB</span></div>
+<div id="meter"><div id="meterFill"></div><div id="meterMark"></div><span id="dbReadout">--</span></div>
 <div id="stats">Quiet time <b id="streak">0:00</b> &nbsp;·&nbsp; Best <b id="best">0:00</b></div>
 <div id="jar"><h2>Firefly Jar</h2><div id="slots"></div><button id="resetJar">Empty jar</button></div>
 <div id="toast"></div>
@@ -162,7 +162,7 @@
 <script>
 // ---- Settings ----
 const MIN_DB = 30, MAX_DB = 110;   // meter range
-const DB_OFFSET = 100;             // rough conversion from mic level (dBFS) to room dB; not calibrated
+const DB_OFFSET = 100;             // shifts mic level (dBFS) onto a friendly 30–110 scale; not real room dB, so the page never says "dB"
 const MAX_FIREFLIES = 40;
 const QUIET_AFTER_MS = 1500;       // must stay under the limit this long to clear
 const BEEP_EVERY_MS = 3000;
@@ -366,7 +366,7 @@ function updateState(now) {
 
   $('meterFill').style.height = pct(level) + '%';
   $('meterFill').style.background = level > threshold ? '#ff4d4d' : level > threshold - 10 ? '#ffc94d' : '#6ee7a8';
-  $('dbReadout').textContent = Math.round(level) + ' dB';
+  $('dbReadout').textContent = Math.round(level);
 }
 
 const fmt = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
