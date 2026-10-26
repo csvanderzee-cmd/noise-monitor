@@ -33,7 +33,23 @@
     font: inherit; color: #0b1530; background: #ffd84d; border: 0;
     padding: 6px 14px; border-radius: 8px; cursor: pointer;
   }
-  #scenePick, #classPick {
+  #controls { transition: opacity 0.3s, transform 0.3s; }
+  #controls button.small { padding: 4px 10px; }
+  #controls button:disabled { opacity: 0.5; cursor: default; }
+  #volume { width: 90px; accent-color: #ffd84d; }
+
+  /* Clean display mode: controls hidden until the mouse nears the top or H is pressed */
+  body.clean #controls { opacity: 0; pointer-events: none; transform: translateY(-20px); }
+  body.clean.peek #controls { opacity: 1; pointer-events: auto; transform: none; }
+  #peekTab {
+    position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 11;
+    padding: 4px 14px; border-radius: 0 0 10px 10px; font-size: 13px;
+    background: rgba(10, 20, 45, 0.5); opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  body.clean #peekTab { opacity: 0.5; }
+  body.clean.peek #peekTab { opacity: 0; }
+
+  #scenePick, #classPick, #alertPick, #timerPick {
     font: inherit; color: #0b1530; background: #fff; border: 0;
     padding: 5px 8px; border-radius: 8px; cursor: pointer;
   }
@@ -113,23 +129,32 @@
   .slot.caught { cursor: pointer; border-radius: 8px; margin: 4px -6px; padding: 4px 6px; }
   .slot.caught:hover { background: rgba(255,255,255,0.12); }
 
-  /* Gallery card for a caught rare */
-  #gallery {
+  /* Pop-up cards: rare gallery and session report */
+  .modal {
     position: fixed; inset: 0; z-index: 12;
     display: flex; align-items: center; justify-content: center; padding: 16px;
     background: rgba(5, 10, 25, 0.7);
   }
-  #gallery[hidden] { display: none; }
-  #gallery .card {
-    position: relative; width: min(420px, 100%); padding: 20px 22px 24px;
-    border-radius: 20px; background: #14224a; text-align: center;
+  .modal[hidden] { display: none; }
+  .modal .card {
+    position: relative; width: min(420px, 100%); max-height: 100%; overflow: auto;
+    padding: 20px 22px 24px; border-radius: 20px; background: #14224a; text-align: center;
     box-shadow: 0 20px 60px rgba(0,0,0,0.5);
   }
+  .modal h2 { margin: 16px 0 4px; font-size: 26px; color: #ffd84d; }
   #galleryCanvas { width: 100%; height: 240px; border-radius: 14px; display: block; }
-  #gallery h2 { margin: 16px 0 4px; font-size: 26px; color: #ffd84d; }
-  #galleryCount { margin: 0 0 12px; opacity: 0.75; }
+  #galleryCount, #reportSub { margin: 0 0 12px; opacity: 0.75; }
   #galleryFact { margin: 0; font-size: 18px; line-height: 1.45; }
-  #galleryClose {
+  #report .card { width: min(760px, 100%); }
+  #report h2 { margin-top: 4px; }
+  #reportCanvas { width: 100%; height: 240px; border-radius: 12px; display: block; background: #0d1838; }
+  #reportStats {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 14px;
+  }
+  .tile { padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.08); }
+  .tile b { display: block; font-size: 24px; color: #ffd84d; }
+  .tile span { font-size: 13px; opacity: 0.8; }
+  .closeBtn {
     position: absolute; top: 10px; right: 10px; width: 34px; height: 34px;
     border: 0; border-radius: 50%; font-size: 16px; cursor: pointer;
     color: #fff; background: rgba(255,255,255,0.15);
@@ -181,26 +206,66 @@
   <div class="group">
     <label for="threshold">Noise limit: <b id="thresholdVal">70</b></label>
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
+    <button class="small" id="autoBtn" title="Listen to the room for 10 seconds of normal work and set the limit">Auto-set</button>
     <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
   </div>
   <div class="group">
     <label for="warnTime">Warning time: <b id="warnTimeVal">3</b> sec</label>
     <input type="range" id="warnTime" min="0.5" max="10" step="0.5" value="3">
   </div>
-  <label class="toggle"><input type="checkbox" id="soundToggle" checked> Alert sound</label>
+  <div class="group">
+    <label for="alertPick">Alert:</label>
+    <select id="alertPick">
+      <option value="beep">Beep</option>
+      <option value="chime">Chime</option>
+      <option value="shh">Shhh</option>
+      <option value="off">Off (visual only)</option>
+    </select>
+    <input type="range" id="volume" min="0" max="100" step="5" value="70" title="Alert volume" aria-label="Alert volume">
+  </div>
+  <div class="group">
+    <label for="timerPick">Timer:</label>
+    <select id="timerPick">
+      <option value="0">Off</option>
+      <option value="1">1 min</option>
+      <option value="2">2 min</option>
+      <option value="3">3 min</option>
+      <option value="5">5 min</option>
+      <option value="10">10 min</option>
+      <option value="15">15 min</option>
+      <option value="20">20 min</option>
+      <option value="30">30 min</option>
+      <option value="45">45 min</option>
+      <option value="60">60 min</option>
+    </select>
+  </div>
+  <button id="reportBtn">📈 Report</button>
+  <button id="hideBtn">Hide controls</button>
   <button id="fsBtn">Fullscreen</button>
+  <span class="hint">Keys: H hide · F fullscreen · 1–3 activity · M sound</span>
 </header>
+<div id="peekTab">Move the mouse here or press H for controls</div>
 
 <div id="meter"><div id="meterFill"></div><div id="meterMark"></div><span id="dbReadout">--</span></div>
-<div id="stats"><span id="activityLabel"></span> &nbsp;·&nbsp; Quiet time <b id="streak">0:00</b> &nbsp;·&nbsp; Best <b id="best">0:00</b></div>
+<div id="stats"><span id="timerLabel" hidden>⏱ <b id="timerVal">0:00</b> &nbsp;·&nbsp; </span><span id="activityLabel"></span> &nbsp;·&nbsp; Quiet time <b id="streak">0:00</b> &nbsp;·&nbsp; Best <b id="best">0:00</b></div>
 <div id="jar"><h2 id="jarTitle"></h2><div id="slots"></div><button id="resetJar">Empty jar</button></div>
 <div id="toast"></div>
 <div id="warnEdge"></div>
 <div id="alarm"><div>Too loud!</div></div>
 
-<div id="gallery" hidden>
+<div id="report" class="modal" hidden>
   <div class="card">
-    <button id="galleryClose" aria-label="Close">✕</button>
+    <button class="closeBtn" id="reportClose" aria-label="Close">✕</button>
+    <h2>Session Report</h2>
+    <p id="reportSub"></p>
+    <canvas id="reportCanvas"></canvas>
+    <div id="reportStats"></div>
+  </div>
+</div>
+
+<div id="gallery" class="modal" hidden>
+  <div class="card">
+    <button class="closeBtn" id="galleryClose" aria-label="Close">✕</button>
     <canvas id="galleryCanvas"></canvas>
     <h2 id="galleryName"></h2>
     <p id="galleryCount"></p>
@@ -234,7 +299,8 @@ const LIFE_RANGE_MS = 25000;       // so there's always some coming and going
 const $ = id => document.getElementById(id);
 const canvas = $('scene');
 let ctx = canvas.getContext('2d');   // swapped to the gallery canvas while drawing a gallery card
-const slider = $('threshold'), soundToggle = $('soundToggle'), warnSlider = $('warnTime');
+const slider = $('threshold'), warnSlider = $('warnTime');
+const alertPick = $('alertPick'), volumeSlider = $('volume');
 
 const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
 const mix = (c, d, f) => c.map((v, i) => Math.round(v + (d[i] - v) * f));
@@ -367,12 +433,15 @@ const CLASSES = [1, 2, 3, 4, 5, 6, 7].map(n => ({ id: 'p' + n, name: 'Period ' +
 
 // ---- Saved settings ----
 // warnSec: how long it can stay over the line before the critters scatter
-let soundOn = true, sceneId = 'meadow', activity = 'partner', classId = 'p1';
+// alertSound: 'beep' | 'chime' | 'shh' | 'off' (off also silences the catch chime and timer)
+let alertSound = 'beep', volume = 70, sceneId = 'meadow', activity = 'partner', classId = 'p1';
 const presets = {};
 Object.entries(ACTIVITIES).forEach(([id, a]) => { presets[id] = { threshold: a.threshold, warnSec: a.warnSec }; });
 try {
   const saved = JSON.parse(localStorage.getItem('noiseMonitor') || '{}');
-  if (saved.soundOn === false) soundOn = false;
+  if (saved.soundOn === false) alertSound = 'off';
+  if (['beep', 'chime', 'shh', 'off'].includes(saved.alertSound)) alertSound = saved.alertSound;
+  if (typeof saved.volume === 'number') volume = saved.volume;
   if (SCENES[saved.scene]) sceneId = saved.scene;
   if (ACTIVITIES[saved.activity]) activity = saved.activity;
   if (CLASSES.some(c => c.id === saved.classId)) classId = saved.classId;
@@ -386,10 +455,11 @@ try {
 let scene = SCENES[sceneId];
 let threshold = presets[activity].threshold, warnSec = presets[activity].warnSec;
 
-soundToggle.checked = soundOn;
+alertPick.value = alertSound;
+volumeSlider.value = volume;
 
 function save() {
-  try { localStorage.setItem('noiseMonitor', JSON.stringify({ soundOn, scene: sceneId, activity, presets, classId })); } catch (e) {}
+  try { localStorage.setItem('noiseMonitor', JSON.stringify({ alertSound, volume, scene: sceneId, activity, presets, classId })); } catch (e) {}
 }
 function updateThresholdUI() {
   $('thresholdVal').textContent = threshold;
@@ -432,14 +502,27 @@ classPick.value = classId;
 classPick.addEventListener('change', () => {
   classId = classPick.value;
   best = 0;
+  if (analyser) newSession();
   save();
   loadJar();
 });
-soundToggle.addEventListener('change', () => { soundOn = soundToggle.checked; save(); });
-$('fsBtn').addEventListener('click', () => {
+
+// Changing the alert or volume plays a sample so the teacher can hear it
+let lastSound = alertSound === 'off' ? 'beep' : alertSound;
+alertPick.addEventListener('change', () => {
+  alertSound = alertPick.value;
+  if (alertSound !== 'off') lastSound = alertSound;
+  save();
+  playAlert();
+});
+volumeSlider.addEventListener('change', () => { volume = +volumeSlider.value; save(); playAlert(); });
+volumeSlider.addEventListener('input', () => { volume = +volumeSlider.value; });
+
+function toggleFullscreen() {
   if (document.fullscreenElement) document.exitFullscreen();
   else document.documentElement.requestFullscreen?.();
-});
+}
+$('fsBtn').addEventListener('click', toggleFullscreen);
 
 const pct = db => Math.max(0, Math.min(100, (db - MIN_DB) / (MAX_DB - MIN_DB) * 100));
 
@@ -502,15 +585,16 @@ function addToJar(rare) {
   try { localStorage.setItem(jarStorageKey(), JSON.stringify(jar)); } catch (e) {}
   renderJar();
   showToast(isNew ? `✨ New: ${rare.name}!` : `✨ Caught another ${rare.name}!`);
-  if (soundOn && audioCtx) chime();
+  session && session.caught++;
+  if (alertSound !== 'off' && audioCtx) chime();
 }
 
 let toastTimer;
-function showToast(text) {
+function showToast(text, ms = 3500) {
   $('toast').textContent = text;
   $('toast').classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => $('toast').classList.remove('show'), 3500);
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), ms);
 }
 
 function slotCenter(id) {
@@ -534,6 +618,7 @@ $('startBtn').addEventListener('click', async () => {
     audioCtx.createMediaStreamSource(stream).connect(analyser);
     $('start').style.display = 'none';
     quietStart = performance.now();
+    newSession();
   } catch (e) {
     const embedded = window.self !== window.top;
     $('error').textContent = embedded
@@ -554,6 +639,7 @@ function readLevel() {
 
 function tones(notes, type, peak, length, gap) {
   const t = audioCtx.currentTime;
+  peak = Math.max(0.0002, peak * volume / 100);
   notes.forEach((freq, i) => {
     const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
     const start = t + i * gap;
@@ -567,23 +653,117 @@ function tones(notes, type, peak, length, gap) {
     osc.stop(start + length + 0.05);
   });
 }
-const beep = () => tones([880, 660], 'triangle', 0.4, 0.22, 0.25);
 const chime = () => tones([660, 880, 1320], 'sine', 0.25, 0.4, 0.12);
+
+// A soft "shhh": filtered noise that swells and fades
+function shush() {
+  const t = audioCtx.currentTime, len = 1.0;
+  const noise = audioCtx.createBuffer(1, audioCtx.sampleRate * len, audioCtx.sampleRate);
+  const data = noise.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource(), filter = audioCtx.createBiquadFilter(), gain = audioCtx.createGain();
+  src.buffer = noise;
+  filter.type = 'bandpass';
+  filter.frequency.value = 3500;
+  filter.Q.value = 0.8;
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, 0.8 * volume / 100), t + 0.25);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
+  src.connect(filter).connect(gain).connect(audioCtx.destination);
+  src.start(t);
+}
+
+const ALERTS = {
+  beep: () => tones([880, 660], 'triangle', 0.4, 0.22, 0.25),
+  chime: () => tones([1046, 784, 523], 'sine', 0.35, 0.6, 0.18),
+  shh: shush,
+};
+function playAlert() {
+  if (alertSound !== 'off' && audioCtx) ALERTS[alertSound]();
+}
 
 // ---- Loud / quiet state ----
 let loud = false, overSince = null, underSince = null, lastBeep = 0;
 let quietStart = performance.now(), best = 0, lastScare = -Infinity;
 let warnProgress = 0;              // 0..1 through the warning time
 
+// ---- Session (since Start or since switching class): feeds the report ----
+let session = null;
+function newSession() {
+  session = { start: performance.now(), samples: [], lastSample: -Infinity, scatters: 0, caught: 0 };
+}
+function recordSample(now) {
+  if (!session || now - session.lastSample < 1000) return;
+  session.lastSample = now;
+  session.samples.push({ t: now - session.start, level, threshold, loud, warn: warnProgress > 0 });
+}
+
+// ---- Auto-set: listen to normal work for a while, then set the limit just above it ----
+const CALIBRATE_MS = 10000;
+const CALIBRATE_MARGIN = 8;        // limit sits this far above the loudest typical moments
+let calibrating = null;
+
+$('autoBtn').addEventListener('click', () => {
+  if (!analyser) { showToast('Press Start first, then Auto-set'); return; }
+  calibrating = { end: performance.now() + CALIBRATE_MS, samples: [] };
+  $('autoBtn').disabled = true;
+});
+
+function calibrate(now) {
+  calibrating.samples.push(level);
+  const secs = Math.ceil((calibrating.end - now) / 1000);
+  if (secs > 0) {
+    showToast(`👂 Listening to normal work… ${secs}`, 1500);
+    return;
+  }
+  const sorted = calibrating.samples.sort((a, b) => a - b);
+  const typicalPeak = sorted[Math.floor(sorted.length * 0.9)];
+  const limit = Math.max(40, Math.min(100, Math.round(typicalPeak + CALIBRATE_MARGIN)));
+  threshold = presets[activity].threshold = limit;
+  slider.value = limit;
+  updateThresholdUI();
+  save();
+  showToast(`✅ Noise limit set to ${limit} for ${ACTIVITIES[activity].label}`, 5000);
+  calibrating = null;
+  $('autoBtn').disabled = false;
+}
+
+// ---- Countdown timer ----
+const timerPick = $('timerPick');
+let timerEnd = 0, timerScatters = 0;
+
+timerPick.addEventListener('change', () => {
+  const mins = +timerPick.value;
+  timerEnd = mins ? performance.now() + mins * 60000 : 0;
+  timerScatters = 0;
+  $('timerLabel').hidden = !timerEnd;
+  timerPick.blur();
+});
+
+function updateTimer(now) {
+  if (!timerEnd) return;
+  const left = timerEnd - now;
+  $('timerVal').textContent = fmt(Math.max(0, left) + 999);
+  if (left > 0) return;
+  timerEnd = 0;
+  timerPick.value = '0';
+  $('timerLabel').hidden = true;
+  if (alertSound !== 'off' && audioCtx) tones([523, 659, 784, 1046], 'sine', 0.3, 0.5, 0.15);
+  showToast(timerScatters ? "⏰ Time's up!" : "🎉 Time's up! Your class stayed calm the whole time!", 6000);
+}
+
 function updateState(now) {
   warnProgress = 0;
-  if (level > threshold) {
+  if (calibrating) calibrate(now);
+  if (level > threshold && !calibrating) {
     underSince = null;
     if (overSince === null) overSince = now;
     if (!loud) warnProgress = Math.min(1, (now - overSince) / (warnSec * 1000));
     if (!loud && now - overSince > warnSec * 1000) {
       loud = true;
       lastScare = now;
+      if (session) session.scatters++;
+      timerScatters++;
       document.body.classList.add('loud');
       critters.forEach(c => c.scare(W / 2, H / 2));
     }
@@ -597,7 +777,8 @@ function updateState(now) {
     }
   }
   document.body.classList.toggle('warning', warnProgress > 0);
-  if (loud && soundOn && now - lastBeep > BEEP_EVERY_MS) { beep(); lastBeep = now; }
+  if (loud && now - lastBeep > BEEP_EVERY_MS) { playAlert(); lastBeep = now; }
+  recordSample(now);
 
   const streak = loud ? 0 : now - quietStart;
   if (loud) quietStart = now;
@@ -610,7 +791,7 @@ function updateState(now) {
   $('dbReadout').textContent = Math.round(level);
 }
 
-const fmt = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const fmt = ms => { const s = Math.floor(Math.max(0, ms) / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
 // ---- Backgrounds ----
 let W = 0, H = 0, dpr = 1, background;
@@ -1898,6 +2079,7 @@ function loop(now) {
     readLevel();
     updateState(now);
   }
+  updateTimer(now);
 
   // New critters arrive while it stays quiet
   const max = scene.max || MAX_CRITTERS;
@@ -1986,7 +2168,138 @@ function closeGallery() {
 }
 $('galleryClose').addEventListener('click', closeGallery);
 $('gallery').addEventListener('click', e => { if (e.target.id === 'gallery') closeGallery(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGallery(); });
+// ---- Clean display mode ----
+function toggleClean() {
+  const clean = document.body.classList.toggle('clean');
+  document.body.classList.remove('peek');
+  $('hideBtn').textContent = clean ? 'Show controls' : 'Hide controls';
+}
+$('hideBtn').addEventListener('click', toggleClean);
+
+// Moving the mouse near the top peeks the controls back for a few seconds
+let peekTimer;
+document.addEventListener('mousemove', e => {
+  if (!document.body.classList.contains('clean')) return;
+  const peeking = document.body.classList.contains('peek');
+  const reach = peeking ? $('controls').getBoundingClientRect().bottom + 30 : 60;
+  if (e.clientY > reach) return;
+  document.body.classList.add('peek');
+  clearTimeout(peekTimer);
+  peekTimer = setTimeout(() => document.body.classList.remove('peek'), 3000);
+});
+
+// ---- Keyboard shortcuts ----
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeGallery(); closeReport(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey || e.target.tagName === 'SELECT') return;
+  const key = e.key.toLowerCase();
+  if (key === 'h') toggleClean();
+  else if (key === 'f') toggleFullscreen();
+  else if (key === 'm') {
+    alertSound = alertSound === 'off' ? lastSound : 'off';
+    alertPick.value = alertSound;
+    save();
+    showToast(alertSound === 'off' ? '🔇 Alert sound off' : '🔊 Alert sound on');
+  } else if (['1', '2', '3'].includes(key)) {
+    activity = Object.keys(ACTIVITIES)[+key - 1];
+    save();
+    applyActivity();
+    showToast(ACTIVITIES[activity].label);
+  }
+});
+
+// ---- Session report ----
+const reportCanvas = $('reportCanvas');
+
+$('reportBtn').addEventListener('click', openReport);
+$('reportClose').addEventListener('click', closeReport);
+$('report').addEventListener('click', e => { if (e.target.id === 'report') closeReport(); });
+
+function closeReport() {
+  $('report').hidden = true;
+}
+
+function openReport() {
+  $('report').hidden = false;
+  const className = CLASSES.find(c => c.id === classId).name;
+  const samples = session ? session.samples : [];
+  const length = session ? performance.now() - session.start : 0;
+  const quiet = samples.filter(s => !s.loud).length;
+  $('reportSub').textContent = session
+    ? `${className} · ${scene.name} · started ${new Date(Date.now() - length).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+    : 'Press Start to begin a session.';
+  const tiles = [
+    [fmt(length), 'Session length'],
+    [samples.length ? Math.round(quiet / samples.length * 100) + '%' : '–', 'Time below the limit'],
+    [fmt(best), 'Longest quiet streak'],
+    [session ? session.scatters : 0, 'Times it got too loud'],
+    [session ? session.caught : 0, 'Rares caught'],
+  ];
+  $('reportStats').innerHTML = tiles.map(([v, label]) => `<div class="tile"><b>${v}</b><span>${label}</span></div>`).join('');
+  drawReportChart(samples);
+}
+
+// Noise level over the session, with the limit line and too-loud times shaded red
+function drawReportChart(samples) {
+  const box = reportCanvas.getBoundingClientRect();
+  reportCanvas.width = box.width * dpr;
+  reportCanvas.height = box.height * dpr;
+  const g = reportCanvas.getContext('2d');
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const w = box.width, h = box.height, padL = 34, padR = 10, padT = 12, padB = 26;
+  const pw = w - padL - padR, ph = h - padT - padB;
+  g.clearRect(0, 0, w, h);
+  g.font = '12px "Segoe UI", sans-serif';
+  g.fillStyle = 'rgba(255,255,255,0.6)';
+
+  if (samples.length < 2) {
+    g.textAlign = 'center';
+    g.fillText('The graph fills in as the session goes.', w / 2, h / 2);
+    return;
+  }
+  const total = samples[samples.length - 1].t;
+  const xOf = t => padL + t / total * pw;
+  const yOf = v => padT + (1 - (v - MIN_DB) / (MAX_DB - MIN_DB)) * ph;
+
+  // Gridlines with level labels
+  g.strokeStyle = 'rgba(255,255,255,0.08)';
+  g.textAlign = 'right';
+  for (let v = 40; v <= 100; v += 20) {
+    g.beginPath(); g.moveTo(padL, yOf(v)); g.lineTo(w - padR, yOf(v)); g.stroke();
+    g.fillText(v, padL - 6, yOf(v) + 4);
+  }
+
+  // Shade warning (yellow) and too-loud (red) stretches
+  const step = pw / samples.length + 1;
+  samples.forEach(s => {
+    if (!s.loud && !s.warn) return;
+    g.fillStyle = s.loud ? 'rgba(255,77,77,0.3)' : 'rgba(255,200,40,0.2)';
+    g.fillRect(xOf(s.t), padT, step, ph);
+  });
+
+  // Limit line (it can change mid-session)
+  g.strokeStyle = '#ff4d4d';
+  g.setLineDash([5, 4]);
+  g.lineWidth = 1.5;
+  g.beginPath();
+  samples.forEach((s, i) => i ? g.lineTo(xOf(s.t), yOf(s.threshold)) : g.moveTo(xOf(s.t), yOf(s.threshold)));
+  g.stroke();
+  g.setLineDash([]);
+
+  // Noise level
+  g.strokeStyle = '#6ee7a8';
+  g.lineWidth = 2;
+  g.beginPath();
+  samples.forEach((s, i) => i ? g.lineTo(xOf(s.t), yOf(s.level)) : g.moveTo(xOf(s.t), yOf(s.level)));
+  g.stroke();
+
+  // Time labels
+  g.fillStyle = 'rgba(255,255,255,0.6)';
+  [[0, 'left'], [0.5, 'center'], [1, 'right']].forEach(([f, align]) => {
+    g.textAlign = align;
+    g.fillText(fmt(total * f), padL + f * pw, h - 8);
+  });
+}
 
 function drawGallery(now) {
   if (!galleryCritter) return;
