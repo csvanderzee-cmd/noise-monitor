@@ -119,10 +119,12 @@
   #jar h2 { margin: 0 0 8px; font-size: 18px; color: #ffd84d; }
   .slot { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; line-height: 1.2; }
   .dot {
-    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    flex: none; width: 38px; height: 32px; border-radius: 16px;
     display: flex; align-items: center; justify-content: center;
     background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.5); font-weight: 700;
   }
+  /* Caught rares show a little drawing of the character */
+  canvas.dot { background: rgba(255,255,255,0.08); }
   .slot small { display: block; opacity: 0.7; font-size: 12px; }
   .slot.caught b { color: #fff; }
   .slot.caught { cursor: pointer; border-radius: 8px; margin: 4px -6px; padding: 4px 6px; }
@@ -185,6 +187,7 @@
     background: #ffd84d; border: 0; padding: 14px 36px; border-radius: 14px; cursor: pointer;
   }
   #error { color: #ff9b9b; max-width: 560px; }
+  #start .privacy { font-size: 14px; opacity: 0.7; }
 </style>
 </head>
 <body>
@@ -220,6 +223,7 @@
       <option value="off">Off (visual only)</option>
     </select>
     <input type="range" id="volume" min="0" max="100" step="5" value="70" title="Alert volume" aria-label="Alert volume">
+    <label class="toggle"><input type="checkbox" id="chimeToggle" checked> Catch chime</label>
   </div>
   <div class="group">
     <label for="timerPick">Timer:</label>
@@ -276,6 +280,7 @@
   <p id="startIntro"></p>
   <p id="startRares"></p>
   <button id="startBtn">Start</button>
+  <p class="privacy">🔒 The microphone only measures how loud the room is, right here on this computer. Nothing is ever recorded, saved or sent anywhere.</p>
   <p id="error"></p>
 </div>
 
@@ -519,7 +524,7 @@ const CLASSES = [1, 2, 3, 4, 5, 6, 7].map(n => ({ id: 'p' + n, name: 'Period ' +
 // ---- Saved settings ----
 // warnSec: how long it can stay over the line before the critters scatter
 // alertSound: 'beep' | 'chime' | 'shh' | 'off' (off also silences the catch chime and timer)
-let alertSound = 'beep', volume = 70, sceneId = 'meadow', activity = 'partner', classId = 'p1';
+let alertSound = 'beep', volume = 70, chimeOn = true, sceneId = 'meadow', activity = 'partner', classId = 'p1';
 const presets = {};
 Object.entries(ACTIVITIES).forEach(([id, a]) => { presets[id] = { threshold: a.threshold, warnSec: a.warnSec }; });
 try {
@@ -527,6 +532,7 @@ try {
   if (saved.soundOn === false) alertSound = 'off';
   if (['beep', 'chime', 'shh', 'off'].includes(saved.alertSound)) alertSound = saved.alertSound;
   if (typeof saved.volume === 'number') volume = saved.volume;
+  if (saved.chimeOn === false) chimeOn = false;
   if (SCENES[saved.scene]) sceneId = saved.scene;
   if (ACTIVITIES[saved.activity]) activity = saved.activity;
   if (CLASSES.some(c => c.id === saved.classId)) classId = saved.classId;
@@ -542,9 +548,15 @@ let threshold = presets[activity].threshold, warnSec = presets[activity].warnSec
 
 alertPick.value = alertSound;
 volumeSlider.value = volume;
+$('chimeToggle').checked = chimeOn;
+$('chimeToggle').addEventListener('change', e => {
+  chimeOn = e.target.checked;
+  save();
+  if (chimeOn && alertSound !== 'off') { ensureAudio(); chime(); }
+});
 
 function save() {
-  try { localStorage.setItem('noiseMonitor', JSON.stringify({ alertSound, volume, scene: sceneId, activity, presets, classId })); } catch (e) {}
+  try { localStorage.setItem('noiseMonitor', JSON.stringify({ alertSound, volume, chimeOn, scene: sceneId, activity, presets, classId })); } catch (e) {}
 }
 function updateThresholdUI() {
   $('thresholdVal').textContent = threshold;
@@ -649,12 +661,31 @@ function loadJar() {
 function renderJar() {
   $('slots').innerHTML = scene.rares.map(r => {
     const count = jar[r.id] || 0;
-    const bg = r.color ? `rgb(${r.color})` : 'conic-gradient(red, orange, yellow, lime, cyan, blue, magenta, red)';
     const mins = r.quietSec < 60 ? r.quietSec + ' sec' : r.quietSec / 60 + ' min';
     return count
-      ? `<div class="slot caught" data-id="${r.id}"><span class="dot" style="background:${bg};box-shadow:0 0 10px ${r.color ? `rgb(${r.color})` : '#fff'}"></span><span><b>${r.name}</b><small>caught ×${count}</small></span></div>`
+      ? `<div class="slot caught" data-id="${r.id}"><canvas class="dot" data-rare="${r.id}"></canvas><span><b>${r.name}</b><small>caught ×${count}</small></span></div>`
       : `<div class="slot" data-id="${r.id}"><span class="dot">?</span><span>???<small>Quiet for ${mins}</small></span></div>`;
   }).join('');
+  drawJarIcons();
+}
+
+// Draws each caught rare as a tiny, happy version of itself (a fixed moment, eyes open)
+function drawJarIcons() {
+  const t = 2;
+  document.querySelectorAll('#slots canvas.dot').forEach(icon => {
+    const rare = scene.rares.find(r => r.id === icon.dataset.rare);
+    const w = icon.clientWidth || 38, h = icon.clientHeight || 32;
+    icon.width = w * dpr;
+    icon.height = h * dpr;
+    const critter = new Critter(rare, rare);
+    Object.assign(critter, { mood: 'happy', phase: 1, spin: 0, vx: 0 });
+    const mainCtx = ctx;
+    ctx = icon.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.translate(w / 2, h / 2 + 1);
+    DRAW[rare.kind](Math.min(w, h) * 0.26, t, critter.color(t), critter);
+    ctx = mainCtx;
+  });
 }
 
 $('resetJar').addEventListener('click', () => {
@@ -672,7 +703,7 @@ function addToJar(rare) {
   renderJar();
   showToast(isNew ? `✨ New: ${rare.name}!` : `✨ Caught another ${rare.name}!`);
   session && session.caught++;
-  if (alertSound !== 'off' && audioCtx) chime();
+  if (chimeOn && alertSound !== 'off' && audioCtx) chime();
 }
 
 let toastTimer;
