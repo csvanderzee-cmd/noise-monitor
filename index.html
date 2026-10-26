@@ -422,12 +422,12 @@ const SCENES = {
     jarTitle: 'Harvest Wagon',
     emptyLabel: 'Empty wagon',
     jarKey: 'noiseMonitorJar_harvest',
-    intro: 'Acorns roll in when the room is quiet. If it gets too loud, they get scared and scurry away!',
+    intro: 'Leaf friends drift in when the room is quiet. If it gets too loud, they get scared and blow away!',
     rareIntro: 'Stay quiet longer to find rare harvest friends. Keep one on screen long enough and it goes in your wagon.',
     size: [11, 15], rareSize: 18,
     home: [0.08, 0.88, 0.3, 0.8],
     glow: false,
-    common: () => ({ kind: 'acorn', color: pick([[196, 135, 70], [176, 115, 55], [214, 155, 90]]) }),
+    common: () => ({ kind: 'leaf', color: pick([[230, 80, 40], [245, 150, 40], [240, 200, 60], [200, 60, 50], [215, 120, 45]]) }),
     rares: [
       { id: 'turkey',   name: 'Tom Turkey',     kind: 'turkey',   color: [150, 95, 55],   quietSec: 30,  weight: 5,
         fact: 'Wild turkeys can run up to 25 miles per hour and fly in short bursts!' },
@@ -2052,30 +2052,50 @@ const DRAW = {
     drawFace(k, s, t, -0.3, 0.1);
   },
 
-  acorn(s, t, c, k) {
-    const dark = mix(c, BLACK, 0.35);
-    // Nut
+  leaf(s, t, c, k) {
+    // Gentle flutter, faster when blowing away
+    ctx.rotate(Math.sin(t * (k.fleeing ? 10 : 2) + k.phase) * 0.15);
+    const dark = mix(c, BLACK, 0.3), vein = mix(c, WHITE, 0.35);
+
+    // Stem
+    ctx.strokeStyle = '#7a4a26';
+    ctx.lineWidth = Math.max(2, s * 0.12);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0, s * 0.85);
+    ctx.quadraticCurveTo(s * 0.05, s * 1.3, s * 0.25, s * 1.55);
+    ctx.stroke();
+
+    // Wide maple-style lobes around a round middle
+    const lobes = [[-90, 1.75], [-148, 1.6], [-32, 1.6], [150, 1.35], [30, 1.35]];
+    const at = (a, r) => [Math.cos(a) * s * r, Math.sin(a) * s * r];
     ctx.fillStyle = rgb(c);
     ctx.strokeStyle = rgb(dark);
     ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.ellipse(0, s * 0.15, s * 0.85, s * 0.95, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-    // Bumpy cap and stem
-    ctx.fillStyle = '#7a5230';
-    ctx.beginPath();
-    ctx.ellipse(0, -s * 0.5, s * 0.98, s * 0.48, 0, Math.PI, 0);
-    ctx.quadraticCurveTo(0, -s * 0.3, -s * 0.98, -s * 0.5);
-    ctx.fill();
-    ctx.fillStyle = '#5e3d22';
-    for (let i = -2; i <= 2; i++) {
+    lobes.forEach(([deg, len]) => {
+      const a = deg * Math.PI / 180;
       ctx.beginPath();
-      ctx.arc(i * s * 0.32, -s * 0.62 - Math.abs(i) * -s * 0.04, s * 0.07, 0, Math.PI * 2);
+      ctx.moveTo(...at(a - 0.55, 0.5));
+      ctx.quadraticCurveTo(...at(a - 0.42, len * 0.85), ...at(a, len));
+      ctx.quadraticCurveTo(...at(a + 0.42, len * 0.85), ...at(a + 0.55, 0.5));
       ctx.fill();
-    }
-    ctx.fillRect(-s * 0.07, -s * 1.15, s * 0.14, s * 0.25);
-    drawFace(k, s, t, -0.3, 0.25);
+      ctx.stroke();
+    });
+    ctx.strokeStyle = rgb(vein);
+    ctx.lineWidth = Math.max(1, s * 0.06);
+    lobes.forEach(([deg, len]) => {
+      const a = deg * Math.PI / 180;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * s * 0.8, Math.sin(a) * s * 0.8);
+      ctx.lineTo(Math.cos(a) * s * (len - 0.15), Math.sin(a) * s * (len - 0.15));
+      ctx.stroke();
+    });
+
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(dark);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, s * 0.95, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    drawFace(k, s, t, -0.3, 0.05);
   },
 
   turkey(s, t, c, k) {
