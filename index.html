@@ -319,7 +319,12 @@ const SCENES = {
     size: [9, 13], rareSize: 15,
     home: [0.08, 0.88, 0.35, 0.85],
     glow: true,
-    common: () => ({ kind: 'firefly', color: [220, 255, 90] }),
+    ground: [0.84, 0.92],
+    commons: [
+      { kind: 'firefly', weight: 60, colors: [[220, 255, 90]] },
+      { kind: 'moth',    weight: 25, colors: [[225, 205, 170], [200, 190, 235], [235, 215, 225]], move: 'flutter', scale: 0.9 },
+      { kind: 'owl',     weight: 15, colors: [[150, 115, 90], [140, 135, 150]], move: 'perch' },
+    ],
     rares: [
       { id: 'blue',    name: 'Blue Glimmer',   kind: 'firefly', color: [110, 190, 255], quietSec: 30,  weight: 5,
         fact: 'Fireflies are not really flies. They are a kind of beetle!' },
@@ -344,7 +349,13 @@ const SCENES = {
     size: [12, 17], rareSize: 20,
     home: [0.1, 0.86, 0.25, 0.78],
     glow: false,
-    common: () => ({ kind: 'fish', color: pick([[255, 170, 90], [120, 200, 255], [255, 150, 190], [140, 225, 160], [255, 220, 100], [190, 160, 255]]) }),
+    ground: [0.88, 0.93],
+    commons: [
+      { kind: 'fish',     weight: 60, colors: [[255, 170, 90], [120, 200, 255], [255, 150, 190], [140, 225, 160], [255, 220, 100], [190, 160, 255]] },
+      { kind: 'crab',     weight: 12, colors: [[240, 90, 70], [255, 130, 80]], move: 'walk', speed: 45, scale: 0.85 },
+      { kind: 'starfish', weight: 12, colors: [[255, 150, 90], [255, 120, 160], [190, 130, 230]], move: 'sit', speed: 50, scale: 0.85 },
+      { kind: 'turtle',   weight: 16, colors: [[110, 190, 120], [90, 170, 140]], move: 'cruise', scale: 1.1 },
+    ],
     rares: [
       { id: 'clown',   name: 'Clownfish',       kind: 'clownfish', color: [255, 125, 35],  quietSec: 30,  weight: 5,
         fact: 'Clownfish live safely inside stinging sea anemones. A slimy coat protects them!' },
@@ -370,7 +381,12 @@ const SCENES = {
     size: [12, 16], rareSize: 19,
     home: [0.1, 0.86, 0.25, 0.75],
     glow: false,
-    common: () => ({ kind: 'ghost', color: pick([[245, 245, 255], [232, 222, 255], [218, 248, 235]]) }),
+    commons: [
+      { kind: 'ghost',     weight: 60, colors: [[245, 245, 255], [232, 222, 255], [218, 248, 235]] },
+      { kind: 'spider',    weight: 15, colors: [[125, 100, 160], [100, 95, 125]], move: 'dangle', scale: 0.85 },
+      { kind: 'candycorn', weight: 13, colors: [[255, 200, 60]], scale: 0.85 },
+      { kind: 'candy',     weight: 12, colors: [[255, 90, 140], [120, 200, 255], [170, 230, 110], [200, 140, 255]], scale: 0.8 },
+    ],
     rares: [
       { id: 'pumpkin', name: "Jack-o'-Lantern",  kind: 'pumpkin', color: [255, 140, 30],  quietSec: 30,  weight: 5,
         fact: "The first jack-o'-lanterns in Ireland were carved from turnips, not pumpkins!" },
@@ -397,9 +413,17 @@ const SCENES = {
     grow: true,
     max: 18,
     size: [9, 12], rareSize: 14,
-    home: [0.03, 0.93, 0.82, 0.95],
+    // home is where bees and butterflies fly; flowers are planted in the ground band
+    home: [0.05, 0.93, 0.3, 0.68],
+    ground: [0.82, 0.95],
     glow: false,
-    common: () => ({ kind: 'flower', color: pick([[255, 150, 190], [255, 220, 90], [190, 160, 255], [255, 255, 255], [255, 170, 100], [140, 200, 255]]) }),
+    commons: [
+      { kind: 'flower',    weight: 60, colors: [[255, 150, 190], [255, 220, 90], [190, 160, 255], [255, 255, 255], [255, 170, 100], [140, 200, 255]], move: 'grow' },
+      { kind: 'bell',      weight: 10, colors: [[120, 150, 255], [190, 130, 240], [255, 140, 200]], move: 'grow' },
+      { kind: 'cosmos',    weight: 10, colors: [[255, 110, 180], [245, 160, 230], [255, 245, 250]], move: 'grow' },
+      { kind: 'bee',       weight: 10, colors: [[255, 205, 50]], move: 'buzz', scale: 0.8 },
+      { kind: 'butterfly', weight: 10, colors: [[255, 160, 60], [120, 180, 255], [240, 120, 200]], move: 'flutter', scale: 0.85 },
+    ],
     rares: [
       { id: 'sunflower', name: 'Sunflower',        kind: 'sunflower', color: [255, 200, 40],  quietSec: 30,  weight: 5,
         fact: 'Young sunflowers turn to follow the sun across the sky during the day!' },
@@ -425,7 +449,13 @@ const SCENES = {
     size: [11, 15], rareSize: 18,
     home: [0.08, 0.88, 0.3, 0.8],
     glow: false,
-    common: () => ({ kind: 'leaf', color: pick([[230, 80, 40], [245, 150, 40], [240, 200, 60], [200, 60, 50], [215, 120, 45]]) }),
+    ground: [0.8, 0.93],
+    commons: [
+      { kind: 'leaf',  weight: 60, colors: [[230, 80, 40], [245, 150, 40], [240, 200, 60], [200, 60, 50], [215, 120, 45]] },
+      { kind: 'chick', weight: 15, colors: [[255, 220, 90]], move: 'hop', speed: 70, scale: 0.85 },
+      { kind: 'mouse', weight: 12, colors: [[170, 165, 175], [190, 160, 135]], move: 'walk', speed: 220, scale: 0.8 },
+      { kind: 'apple', weight: 13, colors: [[225, 50, 50], [140, 200, 70], [245, 200, 60]], move: 'roll', speed: 40, scale: 0.8 },
+    ],
     rares: [
       { id: 'turkey',   name: 'Tom Turkey',     kind: 'turkey',   color: [150, 95, 55],   quietSec: 30,  weight: 5,
         fact: 'Wild turkeys can run up to 25 miles per hour and fly in short bursts!' },
@@ -451,7 +481,12 @@ const SCENES = {
     size: [11, 15], rareSize: 18,
     home: [0.08, 0.88, 0.25, 0.78],
     glow: false,
-    common: () => ({ kind: 'alien', color: pick([[120, 220, 120], [110, 210, 220], [240, 150, 220], [180, 140, 255]]) }),
+    commons: [
+      { kind: 'alien',     weight: 60, colors: [[120, 220, 120], [110, 210, 220], [240, 150, 220], [180, 140, 255]] },
+      { kind: 'starbuddy', weight: 15, colors: [[255, 225, 90], [255, 200, 120]], scale: 0.9 },
+      { kind: 'moon',      weight: 12, colors: [[220, 220, 235], [235, 225, 200]], move: 'cruise', scale: 0.9 },
+      { kind: 'satellite', weight: 13, colors: [[200, 205, 215]], move: 'cruise', scale: 0.85 },
+    ],
     rares: [
       { id: 'rocket',    name: 'Zoomy Rocket',  kind: 'rocket',    color: [235, 70, 70],   quietSec: 30,  weight: 5,
         fact: 'A rocket has to go about 17,500 miles per hour to stay in orbit around Earth!' },
@@ -563,9 +598,10 @@ alertPick.addEventListener('change', () => {
   alertSound = alertPick.value;
   if (alertSound !== 'off') lastSound = alertSound;
   save();
+  ensureAudio();
   playAlert();
 });
-volumeSlider.addEventListener('change', () => { volume = +volumeSlider.value; save(); playAlert(); });
+volumeSlider.addEventListener('change', () => { volume = +volumeSlider.value; save(); ensureAudio(); playAlert(); });
 volumeSlider.addEventListener('input', () => { volume = +volumeSlider.value; });
 
 function toggleFullscreen() {
@@ -656,12 +692,22 @@ function slotCenter(id) {
 let audioCtx, analyser, buf;
 let level = MIN_DB;
 
+// Browsers only allow sound that starts from a click or key press, so the audio system is
+// created (or woken up) right inside those events rather than after the microphone prompt
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+document.addEventListener('pointerdown', () => { if (audioCtx) ensureAudio(); });
+document.addEventListener('keydown', () => { if (audioCtx) ensureAudio(); });
+
 $('startBtn').addEventListener('click', async () => {
+  ensureAudio();
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
     });
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    ensureAudio();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     buf = new Float32Array(analyser.fftSize);
@@ -2334,7 +2380,487 @@ const DRAW = {
     ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     drawFace(k, s, t, -0.3, 0.05);
   },
+
+  // ---- Common extras ----
+  moth(s, t, c, k) {
+    const flap = 0.55 + 0.45 * Math.abs(Math.sin(t * 14 + k.phase));
+    // Soft wings with a spot on each
+    [-1, 1].forEach(side => {
+      ctx.save();
+      ctx.scale(side * flap, 1);
+      ctx.fillStyle = rgb(mix(c, WHITE, 0.25));
+      ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.ellipse(s * 1.1, -s * 0.35, s * 0.75, s * 0.6, -0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(s * 0.95, s * 0.45, s * 0.5, s * 0.4, 0.4, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = rgb(mix(c, BLACK, 0.2));
+      ctx.beginPath(); ctx.arc(s * 1.15, -s * 0.35, s * 0.18, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+    // Feathery antennae
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.4));
+    ctx.lineWidth = Math.max(1.2, s * 0.07);
+    [-1, 1].forEach(side => {
+      ctx.beginPath(); ctx.moveTo(side * s * 0.25, -s * 0.85); ctx.quadraticCurveTo(side * s * 0.4, -s * 1.5, side * s * 0.75, -s * 1.6); ctx.stroke();
+    });
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  owl(s, t, c, k) {
+    const dark = mix(c, BLACK, 0.3);
+    // Ear tufts
+    ctx.fillStyle = rgb(c);
+    [-1, 1].forEach(side => {
+      ctx.beginPath(); ctx.moveTo(side * s * 0.35, -s * 0.8); ctx.lineTo(side * s * 0.8, -s * 1.25); ctx.lineTo(side * s * 0.85, -s * 0.55); ctx.fill();
+    });
+    // Wings flap while flying, fold once perched
+    const flying = k.fleeing || k.leaving || Math.hypot(k.vx, k.vy) > 30;
+    const flap = flying ? Math.sin(t * 16) * 0.5 : 0;
+    ctx.fillStyle = rgb(dark);
+    [-1, 1].forEach(side => {
+      ctx.beginPath(); ctx.ellipse(side * s * 0.9, s * 0.15, s * 0.3, s * 0.6, side * (0.3 + flap), 0, Math.PI * 2); ctx.fill();
+    });
+    // Body, belly and eye discs
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(dark);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, s, s * 1.05, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.55));
+    ctx.beginPath(); ctx.ellipse(0, s * 0.55, s * 0.6, s * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.35));
+    [-0.25, 0.25].forEach(ex => { ctx.beginPath(); ctx.arc(ex * s, -s * 0.12, s * 0.4, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = '#f2b134';
+    [-0.3, 0.3].forEach(fx => { ctx.beginPath(); ctx.ellipse(fx * s, s * 1.02, s * 0.16, s * 0.08, 0, 0, Math.PI * 2); ctx.fill(); });
+    drawFace(k, s, t, -0.3, 0.03);
+    ctx.fillStyle = '#f2b134';
+    ctx.beginPath(); ctx.moveTo(-s * 0.08, s * 0.05); ctx.lineTo(s * 0.08, s * 0.05); ctx.lineTo(0, s * 0.2); ctx.fill();
+  },
+
+  crab(s, t, c, k) {
+    const dark = mix(c, BLACK, 0.3);
+    const step = Math.abs(k.vx) > 5 ? Math.sin(t * 14 + k.phase) : 0;
+    // Little legs that scuttle
+    ctx.strokeStyle = rgb(dark);
+    ctx.lineWidth = Math.max(2, s * 0.12);
+    ctx.lineCap = 'round';
+    [-1, 1].forEach(side => {
+      for (let i = 0; i < 3; i++) {
+        const y0 = s * (0.1 + i * 0.25);
+        ctx.beginPath(); ctx.moveTo(side * s * 0.8, y0); ctx.lineTo(side * s * 1.3, y0 + s * 0.35 + (i % 2 ? step : -step) * s * 0.12); ctx.stroke();
+      }
+    });
+    // Waving claws
+    const wave = Math.sin(t * 3 + k.phase) * 0.15;
+    [-1, 1].forEach(side => {
+      ctx.save();
+      ctx.translate(side * s * 0.75, -s * 0.5);
+      ctx.rotate(side * (0.5 + wave));
+      ctx.strokeStyle = rgb(dark);
+      ctx.lineWidth = s * 0.15;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -s * 0.45); ctx.stroke();
+      ctx.fillStyle = rgb(c);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 0.7);
+      ctx.arc(0, -s * 0.7, s * 0.32, -Math.PI / 2 + 0.45, -Math.PI / 2 - 0.45 + Math.PI * 2);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.restore();
+    });
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(dark);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, s * 0.1, s * 1.05, s * 0.75, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  starfish(s, t, c, k) {
+    ctx.save();
+    ctx.rotate(k.spin);
+    starShape(s * 2.0, s * 0.62, 5);
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+    ctx.lineWidth = 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.4));
+    for (let i = 0; i < 5; i++) {
+      const a = -Math.PI / 2 + i * Math.PI * 2 / 5;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * s * 0.95, Math.sin(a) * s * 0.95, s * 0.09, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    // Face stays upright while the star turns
+    drawFace(k, s * 0.8, t, -0.3, 0.05);
+  },
+
+  turtle(s, t, c, k) {
+    const paddle = Math.sin(t * (k.fleeing ? 14 : 4) + k.phase) * 0.4;
+    const skin = mix(c, WHITE, 0.25);
+    // Paddling flippers
+    ctx.fillStyle = rgb(skin);
+    [[0.55, 0.55, 0.6], [-0.65, 0.55, -0.6], [0.45, -0.5, -0.5], [-0.6, -0.45, 0.5]].forEach(([x, y, rot]) => {
+      ctx.beginPath(); ctx.ellipse(x * s, y * s, s * 0.45, s * 0.18, rot + paddle * (x > 0 ? 1 : -1), 0, Math.PI * 2); ctx.fill();
+    });
+    // Patterned shell
+    ctx.fillStyle = rgb(mix(c, BLACK, 0.15));
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.35));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 1.05, s * 0.8, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = rgb(mix(c, WHITE, 0.35));
+    ctx.lineWidth = Math.max(1, s * 0.07);
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      ctx.lineTo(Math.cos(a) * s * 0.38, Math.sin(a) * s * 0.3);
+    }
+    ctx.closePath();
+    for (let i = 0; i < 6; i++) {
+      const a = i * Math.PI / 3;
+      ctx.moveTo(Math.cos(a) * s * 0.38, Math.sin(a) * s * 0.3);
+      ctx.lineTo(Math.cos(a) * s * 1.2, Math.sin(a) * s * 1.0);
+    }
+    ctx.stroke();
+    ctx.restore();
+    // Big head with the face
+    const hx = s * 1.15, hr = s * 0.62;
+    ctx.fillStyle = rgb(skin);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(hx, -s * 0.05, hr, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    drawFace(k, hr, t, hx / hr - 0.3, -0.05 * s / hr);
+  },
+
+  spider(s, t, c, k) {
+    const wiggle = Math.sin(t * 5 + k.phase) * 0.15;
+    // Eight wiggly legs
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+    ctx.lineWidth = Math.max(2, s * 0.11);
+    ctx.lineCap = 'round';
+    [-1, 1].forEach(side => {
+      for (let i = 0; i < 4; i++) {
+        const w = (i % 2 ? wiggle : -wiggle) * s;
+        ctx.beginPath();
+        ctx.moveTo(side * s * 0.6, s * (-0.1 + i * 0.2));
+        ctx.quadraticCurveTo(side * s * 1.3, s * (-0.6 + i * 0.35), side * s * 1.6, s * (-0.1 + i * 0.45) + w);
+        ctx.stroke();
+      }
+    });
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // A little bow on top
+    ctx.fillStyle = '#ff7ab8';
+    [-1, 1].forEach(side => {
+      ctx.beginPath(); ctx.moveTo(0, -s * 0.95); ctx.lineTo(side * s * 0.38, -s * 1.15); ctx.lineTo(side * s * 0.38, -s * 0.75); ctx.fill();
+    });
+    ctx.beginPath(); ctx.arc(0, -s * 0.95, s * 0.1, 0, Math.PI * 2); ctx.fill();
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  candycorn(s, t, c, k) {
+    ctx.rotate(Math.sin(t * 1.5 + k.phase) * 0.2);
+    // Rounded triangle with white, orange and yellow bands
+    const shape = () => {
+      ctx.beginPath();
+      ctx.moveTo(0, -s * 1.35);
+      ctx.quadraticCurveTo(s * 0.55, -s * 0.6, s * 1.0, s * 0.75);
+      ctx.quadraticCurveTo(0, s * 1.15, -s * 1.0, s * 0.75);
+      ctx.quadraticCurveTo(-s * 0.55, -s * 0.6, 0, -s * 1.35);
+      ctx.closePath();
+    };
+    shape();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = '#fff8e8'; ctx.fillRect(-s * 1.2, -s * 1.4, s * 2.4, s * 0.95);
+    ctx.fillStyle = '#ff8c1a'; ctx.fillRect(-s * 1.2, -s * 0.45, s * 2.4, s * 0.7);
+    ctx.fillStyle = rgb(c);    ctx.fillRect(-s * 1.2, s * 0.25, s * 2.4, s * 1.0);
+    ctx.restore();
+    shape();
+    ctx.strokeStyle = '#d98a2b';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    drawFace(k, s * 0.75, t, -0.3, 0.25);
+  },
+
+  candy(s, t, c, k) {
+    ctx.rotate(Math.sin(t * 1.2 + k.phase) * 0.5);
+    // Twisted wrapper ends
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.3));
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+    ctx.lineWidth = 1.2;
+    [-1, 1].forEach(side => {
+      ctx.beginPath(); ctx.moveTo(side * s * 0.85, 0); ctx.lineTo(side * s * 1.6, -s * 0.55); ctx.lineTo(side * s * 1.6, s * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke();
+    });
+    // Striped candy
+    ctx.fillStyle = rgb(c);
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, s, s * 0.85, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = s * 0.18;
+    for (let i = -3; i <= 3; i++) {
+      ctx.beginPath(); ctx.moveTo(i * s * 0.5 - s, -s); ctx.lineTo(i * s * 0.5 + s, s); ctx.stroke();
+    }
+    ctx.restore();
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  bell(s, t, c, k) {
+    // Bell-shaped bloom with a scalloped rim
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.85, s * 0.65);
+    ctx.quadraticCurveTo(-s * 1.0, -s * 1.0, 0, -s * 1.1);
+    ctx.quadraticCurveTo(s * 1.0, -s * 1.0, s * 0.85, s * 0.65);
+    for (let i = 0; i < 4; i++) {
+      const x1 = s * 0.85 - (i + 1) * s * 0.425;
+      ctx.quadraticCurveTo(x1 + s * 0.21, s * 1.0, x1, s * 0.65);
+    }
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#ffe066';
+    ctx.beginPath(); ctx.arc(0, s * 0.95, s * 0.12, 0, Math.PI * 2); ctx.fill();
+    drawFace(k, s, t, -0.3, -0.05);
+  },
+
+  cosmos(s, t, c, k) {
+    drawPetals(s, 8, 1.05, 0.55, () => c, false);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.15));
+    ctx.lineWidth = s * 0.14;
+    ctx.beginPath(); ctx.arc(0, 0, s * 1.05, 0, Math.PI * 2); ctx.stroke();
+    drawCenter(s, [255, 200, 50]);
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  bee(s, t, c, k) {
+    const flap = Math.sin(t * 40 + k.phase) * 0.4;
+    // Fast-buzzing wings
+    ctx.fillStyle = 'rgba(230,245,255,0.75)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+    ctx.lineWidth = 1;
+    [[-0.3, -0.4 + flap], [0.2, 0.4 - flap]].forEach(([x, rot]) => {
+      ctx.beginPath(); ctx.ellipse(x * s, -s * 0.95, s * 0.35, s * 0.55, rot, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    });
+    // Stinger
+    ctx.fillStyle = '#3a2a1a';
+    ctx.beginPath(); ctx.moveTo(-s * 1.0, -s * 0.12); ctx.lineTo(-s * 1.35, 0); ctx.lineTo(-s * 1.0, s * 0.12); ctx.fill();
+    // Striped body
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = '#7a5a10';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 1.1, s * 0.9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = '#3a2a1a';
+    ctx.fillRect(-s * 0.98, -s, s * 0.2, s * 2);
+    ctx.fillRect(-s * 0.62, -s, s * 0.18, s * 2);
+    ctx.restore();
+    ctx.stroke();
+    // Antennae
+    ctx.strokeStyle = '#3a2a1a';
+    ctx.lineWidth = Math.max(1.2, s * 0.08);
+    [0.15, 0.55].forEach(x => {
+      ctx.beginPath(); ctx.moveTo(x * s, -s * 0.8); ctx.lineTo((x + 0.15) * s, -s * 1.25); ctx.stroke();
+      ctx.fillStyle = '#3a2a1a';
+      ctx.beginPath(); ctx.arc((x + 0.15) * s, -s * 1.25, s * 0.08, 0, Math.PI * 2); ctx.fill();
+    });
+    drawFace(k, s, t, -0.15, 0.05);
+  },
+
+  butterfly(s, t, c, k) {
+    const flap = 0.25 + 0.75 * Math.abs(Math.cos(t * 9 + k.phase));
+    // Big flapping wings with light spots
+    [-1, 1].forEach(side => {
+      ctx.save();
+      ctx.scale(side * flap, 1);
+      ctx.fillStyle = rgb(c);
+      ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+      ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.ellipse(s * 1.0, -s * 0.45, s * 0.85, s * 0.7, -0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.ellipse(s * 0.8, s * 0.55, s * 0.55, s * 0.45, 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = rgb(mix(c, WHITE, 0.45));
+      ctx.beginPath(); ctx.arc(s * 1.1, -s * 0.5, s * 0.25, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(s * 0.85, s * 0.6, s * 0.15, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    });
+    // Curly antennae
+    ctx.strokeStyle = '#4a3a5a';
+    ctx.lineWidth = Math.max(1.2, s * 0.07);
+    [-1, 1].forEach(side => {
+      ctx.beginPath(); ctx.moveTo(side * s * 0.2, -s * 0.7); ctx.quadraticCurveTo(side * s * 0.3, -s * 1.4, side * s * 0.6, -s * 1.35); ctx.stroke();
+    });
+    const body = s * 0.8;
+    ctx.fillStyle = rgb(mix(c, WHITE, 0.6));
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, body, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    drawFace(k, body, t, -0.3, 0.05);
+  },
+
+  chick(s, t, c, k) {
+    // Feet
+    ctx.strokeStyle = '#f2a33c';
+    ctx.lineWidth = Math.max(2, s * 0.1);
+    [-0.3, 0.3].forEach(x => { ctx.beginPath(); ctx.moveTo(x * s, s * 0.85); ctx.lineTo(x * s, s * 1.15); ctx.stroke(); });
+    // Fluffy head tuft
+    ctx.fillStyle = rgb(c);
+    [[-0.1, -1.0], [0.12, -1.05]].forEach(([x, y]) => {
+      ctx.beginPath(); ctx.ellipse(x * s, y * s, s * 0.12, s * 0.22, x * 3, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Wing flaps while hopping
+    const flap = Math.abs(k.vx) > 5 ? Math.sin(t * 18) * 0.4 : 0;
+    ctx.fillStyle = rgb(mix(c, BLACK, 0.08));
+    ctx.beginPath(); ctx.ellipse(-s * 0.55, s * 0.3, s * 0.35, s * 0.22, 0.6 + flap, 0, Math.PI * 2); ctx.fill();
+    drawFace(k, s, t, -0.3, 0);
+    ctx.fillStyle = '#f2a33c';
+    ctx.beginPath(); ctx.moveTo(-s * 0.1, 0); ctx.lineTo(s * 0.1, 0); ctx.lineTo(0, s * 0.16); ctx.fill();
+  },
+
+  mouse(s, t, c, k) {
+    // Curly tail
+    ctx.strokeStyle = '#e9a3b5';
+    ctx.lineWidth = Math.max(1.5, s * 0.09);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-s * 0.9, s * 0.5);
+    ctx.quadraticCurveTo(-s * 1.7, s * 0.6 + Math.sin(t * 6 + k.phase) * s * 0.2, -s * 1.6, -s * 0.1);
+    ctx.stroke();
+    // Big round ears
+    [-0.55, 0.55].forEach(ex => {
+      ctx.fillStyle = rgb(c);
+      ctx.beginPath(); ctx.arc(ex * s, -s * 0.85, s * 0.42, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f2b6c6';
+      ctx.beginPath(); ctx.arc(ex * s, -s * 0.85, s * 0.26, 0, Math.PI * 2); ctx.fill();
+    });
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // Whiskers
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1;
+    [-1, 1].forEach(side => {
+      [0.08, 0.28].forEach(wy => {
+        ctx.beginPath(); ctx.moveTo(side * s * 0.4, s * 0.15); ctx.lineTo(side * s * 1.05, s * wy); ctx.stroke();
+      });
+    });
+    drawFace(k, s, t, -0.3, 0.05);
+    ctx.fillStyle = '#f28aa5';
+    ctx.beginPath(); ctx.arc(0, s * 0.12, s * 0.08, 0, Math.PI * 2); ctx.fill();
+  },
+
+  apple(s, t, c, k) {
+    ctx.rotate(k.spin);
+    // Stem and leaf
+    ctx.strokeStyle = '#7a4a26';
+    ctx.lineWidth = Math.max(2, s * 0.1);
+    ctx.beginPath(); ctx.moveTo(0, -s * 0.75); ctx.lineTo(s * 0.1, -s * 1.2); ctx.stroke();
+    ctx.fillStyle = '#6fae45';
+    ctx.beginPath(); ctx.ellipse(s * 0.38, -s * 1.05, s * 0.3, s * 0.13, -0.5, 0, Math.PI * 2); ctx.fill();
+    // Apple shape with a dip at the top
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(0, -s * 0.7);
+    ctx.bezierCurveTo(s * 0.7, -s * 1.2, s * 1.35, -s * 0.3, s * 0.9, s * 0.55);
+    ctx.bezierCurveTo(s * 0.6, s * 1.1, s * 0.15, s * 1.0, 0, s * 0.85);
+    ctx.bezierCurveTo(-s * 0.15, s * 1.0, -s * 0.6, s * 1.1, -s * 0.9, s * 0.55);
+    ctx.bezierCurveTo(-s * 1.35, -s * 0.3, -s * 0.7, -s * 1.2, 0, -s * 0.7);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath(); ctx.ellipse(-s * 0.5, -s * 0.35, s * 0.12, s * 0.22, 0.4, 0, Math.PI * 2); ctx.fill();
+    drawFace(k, s, t, -0.3, 0.1);
+  },
+
+  starbuddy(s, t, c, k) {
+    const glow = ctx.createRadialGradient(0, 0, s * 0.5, 0, 0, s * 2.2);
+    glow.addColorStop(0, 'rgba(255,240,150,0.35)');
+    glow.addColorStop(1, 'rgba(255,240,150,0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath(); ctx.arc(0, 0, s * 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.save();
+    ctx.rotate(Math.sin(t * 0.8 + k.phase) * 0.3);
+    starShape(s * 2.0, s * 0.78, 5);
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+    ctx.lineWidth = 1.5;
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+    drawFace(k, s * 0.85, t, -0.3, 0.1);
+  },
+
+  moon(s, t, c, k) {
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.25));
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = rgb(mix(c, BLACK, 0.12));
+    [[-0.55, -0.55, 0.18], [0.62, 0.55, 0.15], [0.62, -0.42, 0.1], [-0.62, 0.55, 0.1]].forEach(([x, y, r]) => {
+      ctx.beginPath(); ctx.arc(x * s, y * s, r * s, 0, Math.PI * 2); ctx.fill();
+    });
+    drawFace(k, s, t, -0.3, 0.05);
+  },
+
+  satellite(s, t, c, k) {
+    ctx.rotate(Math.sin(t * 0.6 + k.phase) * 0.25);
+    // Arms and solar panels
+    ctx.strokeStyle = '#9aa3b5';
+    ctx.lineWidth = Math.max(2, s * 0.1);
+    ctx.beginPath(); ctx.moveTo(-s * 1.9, 0); ctx.lineTo(s * 1.9, 0); ctx.stroke();
+    [-1, 1].forEach(side => {
+      const px = side > 0 ? s * 1.1 : -s * 2.3;
+      ctx.fillStyle = '#3d6fd6';
+      ctx.fillRect(px, -s * 0.45, s * 1.2, s * 0.9);
+      ctx.strokeStyle = '#a9c4ff';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(px, -s * 0.45, s * 1.2, s * 0.9);
+      ctx.beginPath();
+      ctx.moveTo(px + s * 0.4, -s * 0.45); ctx.lineTo(px + s * 0.4, s * 0.45);
+      ctx.moveTo(px + s * 0.8, -s * 0.45); ctx.lineTo(px + s * 0.8, s * 0.45);
+      ctx.moveTo(px, 0); ctx.lineTo(px + s * 1.2, 0);
+      ctx.stroke();
+    });
+    // Dish antenna
+    ctx.strokeStyle = '#9aa3b5';
+    ctx.lineWidth = Math.max(1.5, s * 0.08);
+    ctx.beginPath(); ctx.moveTo(0, -s * 0.85); ctx.lineTo(0, -s * 1.2); ctx.stroke();
+    ctx.fillStyle = '#d8dde6';
+    ctx.beginPath(); ctx.arc(0, -s * 1.2, s * 0.32, Math.PI, 0); ctx.fill();
+    // Body box with a gold band
+    ctx.fillStyle = rgb(c);
+    ctx.strokeStyle = '#8a8f9a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.roundRect(-s * 0.95, -s * 0.85, s * 1.9, s * 1.7, s * 0.35); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e8c25a';
+    ctx.fillRect(-s * 0.9, s * 0.55, s * 1.8, s * 0.14);
+    drawFace(k, s, t, -0.3, -0.05);
+  },
 };
+
+// Soft five-point star (control points pull past the tips so the points stay rounded)
+function starShape(r1, r2, n) {
+  ctx.beginPath();
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+    const ia = a - Math.PI / n, na = a + Math.PI / n;
+    if (i === 0) ctx.moveTo(Math.cos(ia) * r2, Math.sin(ia) * r2);
+    ctx.quadraticCurveTo(Math.cos(a) * r1, Math.sin(a) * r1, Math.cos(na) * r2, Math.sin(na) * r2);
+  }
+  ctx.closePath();
+}
 
 // Ring of petals around the bloom's center; colorFn(i) picks each petal's color
 function drawPetals(s, n, len, width, colorFn, pointed) {
@@ -2387,6 +2913,23 @@ function drawSparkles(x, y, s, t) {
 }
 
 // ---- Critters ----
+// Movement styles: ground kinds stay on the floor band; floating kinds use [ampX, ampY, pull, wobble]
+const GROUND_MOVES = ['walk', 'hop', 'roll', 'sit'];
+const FLOAT_STYLES = {
+  float:   [40, 25, 0.8, 0],
+  flutter: [70, 50, 0.8, 500],
+  cruise:  [160, 30, 0.35, 0],
+  perch:   [3, 3, 1.2, 0],
+};
+
+// Picks a common critter for the scene: the main kind most of the time, a sprinkle of the others
+function pickCommon() {
+  const list = scene.commons;
+  let roll = Math.random() * list.reduce((sum, c) => sum + c.weight, 0);
+  const c = list.find(x => (roll -= x.weight) < 0) || list[0];
+  return { kind: c.kind, color: pick(c.colors), move: c.move, speed: c.speed, scale: c.scale };
+}
+
 class Critter {
   constructor(spec, rare = null) {
     this.kind = spec.kind;
@@ -2405,14 +2948,29 @@ class Critter {
     this.vx = 0; this.vy = 0;
     this.phase = Math.random() * Math.PI * 2;
     this.blink = 1.5 + Math.random() * 2;
-    this.size = rare ? scene.rareSize : scene.size[0] + Math.random() * (scene.size[1] - scene.size[0]);
+    this.size = rare ? scene.rareSize : (scene.size[0] + Math.random() * (scene.size[1] - scene.size[0])) * (spec.scale || 1);
     this.dir = fromLeft ? 1 : -1;
     this.nervous = 0;
     this.mood = 'happy';
     this.alpha = 0;
     this.fleeing = false;
+    this.spin = 0;
+    // How it moves; rares in the garden grow like the other flowers
+    this.move = spec.move || (scene.grow ? 'grow' : 'float');
+    this.speed = spec.speed || 60;
+    if (GROUND_MOVES.includes(this.move) || this.move === 'perch' || this.move === 'grow') {
+      const [g0, g1] = scene.ground;
+      this.homeY = H * (g0 + Math.random() * (g1 - g0));
+      if (this.move !== 'perch') this.y = this.homeY;
+    }
+    if (this.move === 'dangle') {
+      // Spiders lower down from the top of the screen on a thread
+      this.x = this.homeX;
+      this.y = -40;
+      this.homeY = H * (0.22 + Math.random() * 0.3);
+    }
     // Flowers are planted at a spot in the soil and grow up from it
-    this.plant = !!scene.grow;
+    this.plant = this.move === 'grow';
     if (this.plant) {
       this.x = this.homeX;
       this.y = this.homeY;
@@ -2446,6 +3004,18 @@ class Critter {
     if (this.collecting) return;
     this.fleeing = true;
     if (this.plant) return;
+    if (this.move === 'dangle') {
+      // Zip back up the thread
+      this.vx = 0;
+      this.vy = -900;
+      return;
+    }
+    if (GROUND_MOVES.includes(this.move)) {
+      // Run off along the ground
+      this.vx = (this.x < W / 2 ? -1 : 1) * (500 + Math.random() * 300);
+      this.vy = 0;
+      return;
+    }
     let dx = this.x - cx, dy = this.y - cy;
     const d = Math.hypot(dx, dy) || 1;
     const speed = 500 + Math.random() * 400;
@@ -2487,22 +3057,77 @@ class Critter {
       return;
     }
     if (this.leaving) {
+      if (this.move === 'dangle') {
+        this.y -= 200 * dt;
+        return;
+      }
       this.vx += (this.leaveDir * 180 - this.vx) * dt * 2;
       this.vy *= 0.98;
       this.x += this.vx * dt;
       this.y += this.vy * dt;
+      if (this.move === 'roll') this.spin += this.vx * dt / this.size;
       return;
     }
     this.alpha = Math.min(1, this.alpha + dt * 0.6);
     this.nervous = nervous;
-    // Gentle wandering around a home spot; jittery when it's getting noisy
-    const tx = this.homeX + Math.sin(t * 0.5 + this.phase) * 40;
-    const ty = this.homeY + Math.cos(t * 0.37 + this.phase) * 25;
-    this.vx += ((tx - this.x) * 0.8 + (Math.random() - 0.5) * nervous * 900) * dt;
-    this.vy += ((ty - this.y) * 0.8 + (Math.random() - 0.5) * nervous * 900) * dt;
+    this.moveStep(dt, t, nervous);
+  }
+  // Each kind of critter has its own way of getting around; all get jittery when it's noisy
+  moveStep(dt, t, nervous) {
+    const jitter = () => (Math.random() - 0.5) * nervous * 900;
+    if (GROUND_MOVES.includes(this.move)) return this.walkStep(dt, t, nervous);
+
+    if (this.move === 'dangle') {
+      const ty = this.homeY + Math.sin(t * 0.8 + this.phase) * 20;
+      this.vy += (ty - this.y) * 1.5 * dt + jitter() * 0.05;
+      this.vy *= 0.92;
+      this.y += this.vy * dt;
+      this.x = this.homeX + Math.sin(t * 1.3 + this.phase) * 4;
+      return;
+    }
+
+    if (this.move === 'buzz') {
+      // Bees pick a flower to visit every few seconds
+      if (!(t < this.nextTurn)) {
+        const blooms = critters.filter(c => c.plant && c.growth >= 1 && !c.fleeing && !c.leaving);
+        const f = blooms.length ? pick(blooms) : null;
+        this.tx = f ? f.bloomX : W * (0.1 + Math.random() * 0.8);
+        this.ty = f ? f.bloomY - f.size * 1.8 : H * (0.3 + Math.random() * 0.4);
+        this.nextTurn = t + 2 + Math.random() * 2.5;
+      }
+      this.vx += ((this.tx - this.x) * 2.5 + (Math.random() - 0.5) * 300 + jitter()) * dt;
+      this.vy += ((this.ty + Math.sin(t * 6 + this.phase) * 8 - this.y) * 2.5 + (Math.random() - 0.5) * 300 + jitter()) * dt;
+      this.vx *= 0.9; this.vy *= 0.9;
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      return;
+    }
+
+    // Floating kinds wander around home: flutter is twitchy, cruise roams wide and slow, perch barely moves
+    const [ampX, ampY, pull, wobble] = FLOAT_STYLES[this.move] || FLOAT_STYLES.float;
+    const tx = this.homeX + Math.sin(t * 0.5 + this.phase) * ampX;
+    const ty = this.homeY + Math.cos(t * 0.37 + this.phase) * ampY;
+    this.vx += ((tx - this.x) * pull + (Math.random() - 0.5) * wobble + jitter()) * dt;
+    this.vy += ((ty - this.y) * pull + (Math.random() - 0.5) * wobble + jitter()) * dt;
     this.vx *= 0.96; this.vy *= 0.96;
     this.x += this.vx * dt;
     this.y += this.vy * dt;
+  }
+  // Ground critters stroll back and forth along the floor, pausing now and then
+  walkStep(dt, t, nervous) {
+    if (!(t < this.nextTurn)) {
+      const range = this.move === 'sit' ? 0 : 160;
+      this.tx = Math.max(W * 0.05, Math.min(W * 0.95, this.homeX + (Math.random() - 0.5) * 2 * range));
+      this.nextTurn = t + 2 + Math.random() * 3;
+    }
+    const dx = this.tx - this.x;
+    const step = Math.sign(dx) * Math.min(Math.abs(dx), this.speed * (1 + nervous) * dt);
+    this.x += step + (Math.random() - 0.5) * nervous * 3;
+    this.vx = step / dt;
+    this.y = this.homeY;
+    if (this.move === 'hop' && Math.abs(dx) > 2) this.y -= Math.abs(Math.sin(t * 9 + this.phase)) * this.size * 0.9;
+    if (this.move === 'roll') this.spin += step / this.size;
+    if (this.move === 'sit') this.spin += dt * 0.3;
   }
   get gone() {
     return this.done || this.alpha <= 0 && (this.fleeing || this.leaving) || this.x < -150 || this.x > W + 150 || this.y < -150;
@@ -2536,6 +3161,15 @@ class Critter {
     this.mood = mood || (this.fleeing ? 'scared' : warnProgress > 0 ? 'sad' : this.nervous > 0.4 ? 'worried' : 'happy');
     ctx.save();
     ctx.globalAlpha = Math.max(0, Math.min(1, this.alpha));
+    if (this.move === 'dangle' && !this.collecting) {
+      // Silk thread up to the top of the screen
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(this.x, 0);
+      ctx.lineTo(this.x, this.y - this.size * 0.8);
+      ctx.stroke();
+    }
     ctx.translate(this.x, this.y);
     if (this.plant && !this.collecting) {
       this.drawPlant(t);
@@ -2613,7 +3247,7 @@ function loop(now) {
   const max = scene.max || MAX_CRITTERS;
   const staying = critters.filter(c => !c.fleeing && !c.leaving).length;
   if (analyser && !loud && now - lastScare > 2000 && now - lastSpawn > 1200 && staying < max) {
-    critters.push(new Critter(scene.common()));
+    critters.push(new Critter(pickCommon()));
     lastSpawn = now;
   }
   // Once the screen is full, a couple leave every few seconds so new ones can come in
@@ -2649,11 +3283,11 @@ function loop(now) {
   if (scene.ambient) scene.ambient(t);
   if (scene.glow) {
     ctx.globalCompositeOperation = 'lighter';
-    critters.forEach(c => c.drawGlow(t));
+    critters.forEach(c => { if (c.kind === 'firefly') c.drawGlow(t); });
     ctx.globalCompositeOperation = 'source-over';
   }
   // Flowers planted nearer the front draw on top
-  const order = scene.grow ? [...critters].sort((a, b) => a.homeY - b.homeY) : critters;
+  const order = scene.grow ? [...critters].sort((a, b) => (a.plant ? a.homeY : Infinity) - (b.plant ? b.homeY : Infinity)) : critters;
   order.forEach(c => c.drawBody(t));
 
   requestAnimationFrame(loop);
