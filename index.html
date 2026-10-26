@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Firefly Meadow Noise Monitor</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #0b1530; color: #fff;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  /* Controls */
+  #controls {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center;
+    padding: 10px 16px; border-radius: 14px;
+    background: rgba(10, 20, 45, 0.6); backdrop-filter: blur(6px);
+    font-size: 16px; z-index: 5;
+  }
+  #controls .group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  #threshold { width: 220px; accent-color: #ffd84d; }
+  #controls button {
+    font: inherit; color: #0b1530; background: #ffd84d; border: 0;
+    padding: 6px 14px; border-radius: 8px; cursor: pointer;
+  }
+  .toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .toggle input { width: 18px; height: 18px; accent-color: #ffd84d; }
+  .hint { opacity: 0.7; font-size: 13px; }
+
+  /* Level meter */
+  #meter {
+    position: fixed; right: 20px; top: 50%; transform: translateY(-40%);
+    width: 34px; height: 50vh; border-radius: 17px;
+    background: rgba(255,255,255,0.12); overflow: visible; z-index: 4;
+  }
+  #meterFill {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 0%;
+    border-radius: 17px; background: #6ee7a8;
+    transition: background 0.3s;
+  }
+  #meterMark {
+    position: absolute; left: -8px; right: -8px; height: 4px;
+    background: #ff4d4d; border-radius: 2px; box-shadow: 0 0 6px #ff4d4d;
+  }
+  #dbReadout {
+    position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+    margin-top: 8px; white-space: nowrap; font-weight: 600;
+  }
+
+  /* Quiet-time stats */
+  #stats {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    padding: 10px 22px; border-radius: 999px;
+    background: rgba(10, 20, 45, 0.6); font-size: clamp(18px, 3vw, 30px);
+    white-space: nowrap; z-index: 4;
+  }
+  #stats b { color: #ffd84d; font-variant-numeric: tabular-nums; }
+
+  /* Too-loud overlay */
+  #alarm {
+    position: fixed; inset: 0; z-index: 6; pointer-events: none;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(220, 20, 20, 0.78); opacity: 0; transition: opacity 0.3s;
+  }
+  #alarm div {
+    font-size: clamp(48px, 12vw, 160px); font-weight: 800;
+    text-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  body.loud #alarm { opacity: 1; animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { background: rgba(255, 50, 50, 0.9); } }
+
+  /* Rare firefly jar */
+  #jar {
+    position: fixed; left: 20px; top: 50%; transform: translateY(-40%);
+    width: 190px; padding: 12px 14px; border-radius: 14px;
+    background: rgba(10, 20, 45, 0.6); z-index: 4;
+  }
+  #jar h2 { margin: 0 0 8px; font-size: 18px; color: #ffd84d; }
+  .slot { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 14px; line-height: 1.2; }
+  .dot {
+    flex: none; width: 26px; height: 26px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.5); font-weight: 700;
+  }
+  .slot small { display: block; opacity: 0.7; font-size: 12px; }
+  .slot.caught b { color: #fff; }
+  #resetJar {
+    margin-top: 4px; font: inherit; font-size: 12px; color: #fff; opacity: 0.6;
+    background: none; border: 1px solid rgba(255,255,255,0.4); border-radius: 6px;
+    padding: 2px 8px; cursor: pointer;
+  }
+
+  #toast {
+    position: fixed; left: 50%; top: 90px; transform: translateX(-50%);
+    padding: 12px 26px; border-radius: 999px; z-index: 5;
+    background: rgba(10, 20, 45, 0.85); font-size: clamp(18px, 3vw, 28px); font-weight: 700;
+    opacity: 0; transition: opacity 0.4s; pointer-events: none; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+
+  /* Start screen */
+  #start {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px; padding: 20px; text-align: center; background: rgba(11, 21, 48, 0.92);
+  }
+  #start h1 { margin: 0; font-size: clamp(32px, 6vw, 60px); color: #ffd84d; }
+  #start p { margin: 0; max-width: 560px; font-size: 18px; line-height: 1.5; opacity: 0.9; }
+  #startBtn {
+    font: inherit; font-size: 24px; font-weight: 700; color: #0b1530;
+    background: #ffd84d; border: 0; padding: 14px 36px; border-radius: 14px; cursor: pointer;
+  }
+  #error { color: #ff9b9b; max-width: 560px; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<header id="controls">
+  <div class="group">
+    <label for="threshold">Too loud above: <b id="thresholdVal">70</b> dB</label>
+    <input type="range" id="threshold" min="40" max="100" step="1" value="70">
+    <span class="hint">(lower = more sensitive)</span>
+  </div>
+  <label class="toggle"><input type="checkbox" id="soundToggle" checked> Alert sound</label>
+  <button id="fsBtn">Fullscreen</button>
+</header>
+
+<div id="meter"><div id="meterFill"></div><div id="meterMark"></div><span id="dbReadout">-- dB</span></div>
+<div id="stats">Quiet time <b id="streak">0:00</b> &nbsp;·&nbsp; Best <b id="best">0:00</b></div>
+<div id="jar"><h2>Firefly Jar</h2><div id="slots"></div><button id="resetJar">Empty jar</button></div>
+<div id="toast"></div>
+<div id="alarm"><div>Too loud!</div></div>
+
+<div id="start">
+  <h1>Firefly Meadow</h1>
+  <p>Fireflies come out when the room is quiet. If it gets too loud, they get scared and fly away!</p>
+  <p>Stay quiet longer to find rare fireflies. Keep a rare one on screen long enough and it goes in your jar.</p>
+  <button id="startBtn">Start</button>
+  <p id="error"></p>
+</div>
+
+<script>
+// ---- Settings ----
+const MIN_DB = 30, MAX_DB = 110;   // meter range
+const DB_OFFSET = 100;             // rough conversion from mic level (dBFS) to room dB; not calibrated
+const MAX_FIREFLIES = 40;
+const LOUD_AFTER_MS = 400;         // must stay over the limit this long to trigger (ignores single claps)
+const QUIET_AFTER_MS = 1500;       // must stay under the limit this long to clear
+const BEEP_EVERY_MS = 3000;
+const RARE_CATCH_MS = 15000;       // a rare firefly is caught after staying this long
+const RARE_CHECK_MS = 8000;        // how often to roll for a rare firefly
+const RARE_CHANCE = 0.4;
+
+// Rare fireflies unlock after this many seconds of continuous quiet
+const RARES = [
+  { id: 'blue',    name: 'Blue Glimmer',   color: [110, 190, 255], quietSec: 30,  weight: 5 },
+  { id: 'pink',    name: 'Rose Spark',     color: [255, 120, 190], quietSec: 60,  weight: 4 },
+  { id: 'purple',  name: 'Violet Wisp',    color: [185, 120, 255], quietSec: 120, weight: 3 },
+  { id: 'gold',    name: 'Golden Glow',    color: [255, 190, 40],  quietSec: 180, weight: 2 },
+  { id: 'rainbow', name: 'Rainbow Dancer', color: null,            quietSec: 300, weight: 1 },
+];
+
+const $ = id => document.getElementById(id);
+const canvas = $('scene'), ctx = canvas.getContext('2d');
+const slider = $('threshold'), soundToggle = $('soundToggle');
+
+let threshold = 70, soundOn = true;
+try {
+  const saved = JSON.parse(localStorage.getItem('noiseMonitor') || '{}');
+  if (saved.threshold) threshold = saved.threshold;
+  if (saved.soundOn === false) soundOn = false;
+} catch (e) {}
+slider.value = threshold;
+soundToggle.checked = soundOn;
+
+function save() {
+  try { localStorage.setItem('noiseMonitor', JSON.stringify({ threshold, soundOn })); } catch (e) {}
+}
+function updateThresholdUI() {
+  $('thresholdVal').textContent = threshold;
+  $('meterMark').style.bottom = pct(threshold) + '%';
+}
+slider.addEventListener('input', () => { threshold = +slider.value; updateThresholdUI(); save(); });
+soundToggle.addEventListener('change', () => { soundOn = soundToggle.checked; save(); });
+$('fsBtn').addEventListener('click', () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else document.documentElement.requestFullscreen?.();
+});
+
+const pct = db => Math.max(0, Math.min(100, (db - MIN_DB) / (MAX_DB - MIN_DB) * 100));
+updateThresholdUI();
+
+// ---- Firefly jar ----
+let jar = {};
+try { jar = JSON.parse(localStorage.getItem('noiseMonitorJar') || '{}'); } catch (e) {}
+
+function renderJar() {
+  $('slots').innerHTML = RARES.map(r => {
+    const count = jar[r.id] || 0;
+    const bg = r.color ? `rgb(${r.color})` : 'conic-gradient(red, orange, yellow, lime, cyan, blue, magenta, red)';
+    const mins = r.quietSec < 60 ? r.quietSec + ' sec' : r.quietSec / 60 + ' min';
+    return count
+      ? `<div class="slot caught" data-id="${r.id}"><span class="dot" style="background:${bg};box-shadow:0 0 10px ${r.color ? `rgb(${r.color})` : '#fff'}"></span><span><b>${r.name}</b><small>caught ×${count}</small></span></div>`
+      : `<div class="slot" data-id="${r.id}"><span class="dot">?</span><span>???<small>Quiet for ${mins}</small></span></div>`;
+  }).join('');
+}
+renderJar();
+
+$('resetJar').addEventListener('click', () => {
+  if (!confirm('Empty the firefly jar? This removes every rare firefly the class has caught.')) return;
+  jar = {};
+  try { localStorage.removeItem('noiseMonitorJar'); } catch (e) {}
+  renderJar();
+});
+
+function addToJar(rare) {
+  const isNew = !jar[rare.id];
+  jar[rare.id] = (jar[rare.id] || 0) + 1;
+  try { localStorage.setItem('noiseMonitorJar', JSON.stringify(jar)); } catch (e) {}
+  renderJar();
+  showToast(isNew ? `✨ New firefly: ${rare.name}!` : `✨ Caught another ${rare.name}!`);
+  if (soundOn && audioCtx) chime();
+}
+
+let toastTimer;
+function showToast(text) {
+  $('toast').textContent = text;
+  $('toast').classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.remove('show'), 3500);
+}
+
+function slotCenter(id) {
+  const r = document.querySelector(`.slot[data-id="${id}"] .dot`).getBoundingClientRect();
+  return [r.left + r.width / 2, r.top + r.height / 2];
+}
+
+// ---- Audio ----
+let audioCtx, analyser, buf;
+let level = MIN_DB;
+
+$('startBtn').addEventListener('click', async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+    });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 2048;
+    buf = new Float32Array(analyser.fftSize);
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    $('start').style.display = 'none';
+    quietStart = performance.now();
+  } catch (e) {
+    const embedded = window.self !== window.top;
+    $('error').textContent = embedded
+      ? 'The microphone is blocked because this page is embedded inside another page. Open the noise monitor in its own browser tab instead.'
+      : 'Microphone access was blocked. Allow the microphone (click the icon in the address bar) and try again.';
+  }
+});
+
+function readLevel() {
+  analyser.getFloatTimeDomainData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+  const rms = Math.sqrt(sum / buf.length);
+  const db = Math.max(MIN_DB, Math.min(MAX_DB, 20 * Math.log10(rms || 1e-8) + DB_OFFSET));
+  // Rises fast, falls slowly so the meter is readable
+  level += (db - level) * (db > level ? 0.3 : 0.05);
+}
+
+function beep() {
+  const t = audioCtx.currentTime;
+  [880, 660].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t + i * 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.4, t + i * 0.25 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.25 + 0.22);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t + i * 0.25);
+    osc.stop(t + i * 0.25 + 0.25);
+  });
+}
+
+function chime() {
+  const t = audioCtx.currentTime;
+  [660, 880, 1320].forEach((freq, i) => {
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t + i * 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.25, t + i * 0.12 + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.12 + 0.4);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t + i * 0.12);
+    osc.stop(t + i * 0.12 + 0.45);
+  });
+}
+
+// ---- Loud / quiet state ----
+let loud = false, overSince = null, underSince = null, lastBeep = 0;
+let quietStart = performance.now(), best = 0, lastScare = -Infinity;
+
+function updateState(now) {
+  if (level > threshold) {
+    underSince = null;
+    if (overSince === null) overSince = now;
+    if (!loud && now - overSince > LOUD_AFTER_MS) {
+      loud = true;
+      lastScare = now;
+      document.body.classList.add('loud');
+      fireflies.forEach(f => f.scare(canvas.width / 2, canvas.height / 2));
+    }
+  } else {
+    overSince = null;
+    if (underSince === null) underSince = now;
+    if (loud && now - underSince > QUIET_AFTER_MS) {
+      loud = false;
+      quietStart = now;
+      document.body.classList.remove('loud');
+    }
+  }
+  if (loud && soundOn && now - lastBeep > BEEP_EVERY_MS) { beep(); lastBeep = now; }
+
+  const streak = loud ? 0 : now - quietStart;
+  if (loud) quietStart = now;
+  best = Math.max(best, streak);
+  $('streak').textContent = fmt(streak);
+  $('best').textContent = fmt(best);
+
+  $('meterFill').style.height = pct(level) + '%';
+  $('meterFill').style.background = level > threshold ? '#ff4d4d' : level > threshold - 10 ? '#ffc94d' : '#6ee7a8';
+  $('dbReadout').textContent = Math.round(level) + ' dB';
+}
+
+const fmt = ms => { const s = Math.floor(ms / 1000); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+
+// ---- Scene ----
+let W = 0, H = 0, dpr = 1, background;
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  background = drawBackground();
+}
+
+function drawBackground() {
+  const bg = document.createElement('canvas');
+  bg.width = W * dpr; bg.height = H * dpr;
+  const g = bg.getContext('2d');
+  g.scale(dpr, dpr);
+
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#060c22');
+  sky.addColorStop(0.6, '#16295a');
+  sky.addColorStop(1, '#22406b');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
+
+  // Stars (seeded so they don't jump around on resize)
+  let seed = 7;
+  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 160; i++) {
+    g.fillStyle = `rgba(255,255,255,${0.3 + rand() * 0.6})`;
+    g.beginPath();
+    g.arc(rand() * W, rand() * H * 0.6, rand() * 1.4 + 0.3, 0, Math.PI * 2);
+    g.fill();
+  }
+
+  // Moon
+  const mx = W * 0.18, my = H * 0.24, mr = Math.min(W, H) * 0.07;
+  const glow = g.createRadialGradient(mx, my, mr * 0.8, mx, my, mr * 3);
+  glow.addColorStop(0, 'rgba(255,250,220,0.25)');
+  glow.addColorStop(1, 'rgba(255,250,220,0)');
+  g.fillStyle = glow;
+  g.fillRect(mx - mr * 3, my - mr * 3, mr * 6, mr * 6);
+  g.fillStyle = '#fdf6d8';
+  g.beginPath(); g.arc(mx, my, mr, 0, Math.PI * 2); g.fill();
+
+  // Hills
+  hill(g, H * 0.72, '#14284a', 0.08, 1.3);
+  hill(g, H * 0.82, '#0d1d38', 0.05, 2.1);
+
+  // Grass blades
+  g.strokeStyle = '#0a1830';
+  g.lineWidth = 2;
+  for (let x = 0; x < W; x += 4) {
+    const h = 15 + rand() * 35, lean = (rand() - 0.5) * 20;
+    g.beginPath();
+    g.moveTo(x, H);
+    g.quadraticCurveTo(x + lean * 0.3, H - h * 0.6, x + lean, H - h);
+    g.stroke();
+  }
+  return bg;
+}
+
+function hill(g, baseY, color, amp, freq) {
+  g.fillStyle = color;
+  g.beginPath();
+  g.moveTo(0, H);
+  for (let x = 0; x <= W; x += 10) {
+    g.lineTo(x, baseY + Math.sin(x / W * Math.PI * freq) * H * amp);
+  }
+  g.lineTo(W, H);
+  g.fill();
+}
+
+// ---- Fireflies ----
+// Cycles through the hues for the Rainbow Dancer
+function rainbow(t) {
+  const h = (t * 0.4) % 1;
+  const f = n => { const k = (n + h * 12) % 12; return Math.round(255 * (0.5 - 0.5 * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+  return [f(0), f(8), f(4)];
+}
+
+class Firefly {
+  constructor(rare = null) {
+    this.rare = rare;
+    this.born = performance.now();
+    this.collecting = false;
+    this.done = false;
+    const fromLeft = Math.random() < 0.5;
+    this.x = fromLeft ? -20 : W + 20;
+    this.y = H * (0.4 + Math.random() * 0.4);
+    this.homeX = W * (0.08 + Math.random() * 0.8);
+    this.homeY = H * (0.35 + Math.random() * 0.5);
+    this.vx = 0; this.vy = 0;
+    this.phase = Math.random() * Math.PI * 2;
+    this.blink = 1.5 + Math.random() * 2;
+    this.size = rare ? 6 : 3 + Math.random() * 3;
+    this.alpha = 0;
+    this.fleeing = false;
+  }
+  collect() {
+    this.collecting = true;
+  }
+  scare(cx, cy) {
+    if (this.collecting) return;
+    this.fleeing = true;
+    let dx = this.x - cx, dy = this.y - cy;
+    const d = Math.hypot(dx, dy) || 1;
+    const speed = 500 + Math.random() * 400;
+    this.vx = dx / d * speed;
+    this.vy = dy / d * speed - 100;
+  }
+  update(dt, t, nervous) {
+    if (this.done) return;
+    if (this.fleeing) {
+      this.x += this.vx * dt;
+      this.y += this.vy * dt;
+      this.alpha -= dt * 0.7;
+      return;
+    }
+    if (this.collecting) {
+      // Fly into the jar
+      const [tx, ty] = slotCenter(this.rare.id);
+      this.x += (tx - this.x) * Math.min(1, dt * 2.5);
+      this.y += (ty - this.y) * Math.min(1, dt * 2.5);
+      if (Math.hypot(tx - this.x, ty - this.y) < 12) {
+        this.done = true;
+        addToJar(this.rare);
+      }
+      return;
+    }
+    this.alpha = Math.min(1, this.alpha + dt * 0.6);
+    // Gentle wandering around a home spot; jittery when it's getting noisy
+    const tx = this.homeX + Math.sin(t * 0.5 + this.phase) * 40;
+    const ty = this.homeY + Math.cos(t * 0.37 + this.phase) * 25;
+    this.vx += ((tx - this.x) * 0.8 + (Math.random() - 0.5) * nervous * 900) * dt;
+    this.vy += ((ty - this.y) * 0.8 + (Math.random() - 0.5) * nervous * 900) * dt;
+    this.vx *= 0.96; this.vy *= 0.96;
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+  }
+  get gone() {
+    return this.done || this.alpha <= 0 && this.fleeing || this.x < -100 || this.x > W + 100 || this.y < -100;
+  }
+  draw(t) {
+    // Rare fireflies glow steadily and bigger so they stand out
+    const pulse = this.rare ? 0.8 + 0.2 * Math.sin(t * 3 + this.phase) : 0.55 + 0.45 * Math.sin(t * this.blink + this.phase);
+    const glow = pulse * Math.max(0, this.alpha);
+    const [cr, cg, cb] = !this.rare ? [220, 255, 90] : this.rare.color || rainbow(t);
+    const r = this.size * (this.rare ? 9 : 6);
+    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, r);
+    grad.addColorStop(0, `rgba(255,255,230,${glow})`);
+    grad.addColorStop(0.2, `rgba(${cr},${cg},${cb},${glow * 0.7})`);
+    grad.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+let fireflies = [], lastSpawn = 0, lastRareCheck = 0, lastFrame = performance.now();
+
+// Only one rare at a time; longer quiet unlocks rarer kinds
+function maybeSpawnRare(streak) {
+  if (fireflies.some(f => f.rare && !f.fleeing && !f.done)) return;
+  const unlocked = RARES.filter(r => streak >= r.quietSec * 1000);
+  if (!unlocked.length || Math.random() > RARE_CHANCE) return;
+  let roll = Math.random() * unlocked.reduce((sum, r) => sum + r.weight, 0);
+  const pick = unlocked.find(r => (roll -= r.weight) < 0) || unlocked[0];
+  fireflies.push(new Firefly(pick));
+}
+
+function loop(now) {
+  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  lastFrame = now;
+  const t = now / 1000;
+
+  if (analyser) {
+    readLevel();
+    updateState(now);
+  }
+
+  // New fireflies arrive while it stays quiet
+  if (analyser && !loud && now - lastScare > 2000 && now - lastSpawn > 1200 &&
+      fireflies.filter(f => !f.fleeing).length < MAX_FIREFLIES) {
+    fireflies.push(new Firefly());
+    lastSpawn = now;
+  }
+  if (analyser && !loud && now - lastRareCheck > RARE_CHECK_MS) {
+    lastRareCheck = now;
+    maybeSpawnRare(now - quietStart);
+  }
+  fireflies.forEach(f => {
+    if (f.rare && !f.fleeing && !f.collecting && now - f.born > RARE_CATCH_MS) f.collect();
+  });
+
+  const nervous = Math.max(0, Math.min(1, (level - (threshold - 12)) / 12));
+  fireflies.forEach(f => f.update(dt, t, loud ? 0 : nervous));
+  fireflies = fireflies.filter(f => !f.gone);
+
+  ctx.drawImage(background, 0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  fireflies.forEach(f => f.draw(t));
+  ctx.globalCompositeOperation = 'source-over';
+
+  requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', resize);
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
