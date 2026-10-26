@@ -184,6 +184,8 @@ const RARE_CHECK_MS = 8000;        // how often to roll for a rare critter
 const RARE_CHANCE = 0.4;
 const ROTATE_MS = 4000;            // once the screen is full, swap a couple of critters this often
 const ROTATE_COUNT = 2;
+const LIFE_MIN_MS = 20000;         // regular critters also leave on their own after 20–45 seconds,
+const LIFE_RANGE_MS = 25000;       // so there's always some coming and going
 
 const $ = id => document.getElementById(id);
 const canvas = $('scene'), ctx = canvas.getContext('2d');
@@ -269,9 +271,9 @@ const SCENES = {
     rareIntro: 'Stay quiet longer to grow rare flowers. Keep one blooming long enough and it gets picked for your basket.',
     // Flowers grow in place instead of wandering: home is where they're planted in the soil
     grow: true,
-    max: 26,
+    max: 18,
     size: [9, 12], rareSize: 14,
-    home: [0.2, 0.9, 0.82, 0.95],
+    home: [0.03, 0.93, 0.82, 0.95],
     glow: false,
     common: () => ({ kind: 'flower', color: pick([[255, 150, 190], [255, 220, 90], [190, 160, 255], [255, 255, 255], [255, 170, 100], [140, 200, 255]]) }),
     rares: [
@@ -1563,6 +1565,7 @@ class Critter {
     this.baseColor = spec.color;
     this.rare = rare;
     this.born = performance.now();
+    this.life = LIFE_MIN_MS + Math.random() * LIFE_RANGE_MS;
     this.collecting = false;
     this.done = false;
     const fromLeft = Math.random() < 0.5;
@@ -1586,6 +1589,11 @@ class Critter {
       this.x = this.homeX;
       this.y = this.homeY;
       this.stemH = H * (0.12 + Math.random() * 0.22);
+      // Flowers under the basket panel stay short so their blooms aren't hidden behind it
+      const jarBox = $('jar').getBoundingClientRect();
+      if (this.homeX < jarBox.right + this.size * 2) {
+        this.stemH = Math.min(this.stemH, Math.max(H * 0.04, this.homeY - jarBox.bottom - this.size * 2.5));
+      }
       this.growth = 0;
       this.dir = 1;
       this.bloomX = this.x;
@@ -1786,6 +1794,9 @@ function loop(now) {
     for (let i = 0; i < ROTATE_COUNT && settled.length; i++) {
       settled.splice(Math.floor(Math.random() * settled.length), 1)[0].leave();
     }
+  }
+  if (analyser && !loud) {
+    critters.forEach(c => { if (c.settled && now - c.born > c.life) c.leave(); });
   }
   if (analyser && !loud && now - lastRareCheck > RARE_CHECK_MS) {
     lastRareCheck = now;
