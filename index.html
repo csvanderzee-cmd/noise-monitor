@@ -605,6 +605,9 @@ try {
     presets.partner = { threshold: saved.threshold, warnSec: saved.warnSec || 3 };
   }
 } catch (e) {}
+// A link like ?scene=safari opens that scene directly, even one hidden from the picker (for previewing)
+const linkedScene = new URLSearchParams(location.search).get('scene');
+if (SCENES[linkedScene]) sceneId = linkedScene;
 let scene = SCENES[sceneId];
 let threshold = presets[activity].threshold, warnSec = presets[activity].warnSec;
 
@@ -730,7 +733,9 @@ const pct = db => Math.max(0, Math.min(100, (db - MIN_DB) / (MAX_DB - MIN_DB) * 
 
 // ---- Scene picker ----
 const scenePick = $('scenePick');
-scenePick.innerHTML = Object.entries(SCENES).filter(([, s]) => !s.hidden).map(([id, s]) => `<option value="${id}">${s.name}</option>`).join('');
+scenePick.innerHTML = Object.entries(SCENES)
+  .filter(([id, s]) => !s.hidden || id === sceneId)
+  .map(([id, s]) => `<option value="${id}">${s.name}${s.hidden ? ' (preview)' : ''}</option>`).join('');
 scenePick.value = sceneId;
 scenePick.addEventListener('change', () => {
   sceneId = scenePick.value;
@@ -3761,7 +3766,8 @@ function drawCenter(s, col) {
 }
 
 // ---- Picture critters: Microsoft Fluent Emoji (Flat), MIT License, see assets/fluent/LICENSE ----
-// legTop: where the legs start, as a fraction of the picture's height; they swing from there when walking
+// legTop: where the legs start, as a fraction of the picture's height; they swing from there when walking.
+// legsTogether: swing the legs as one piece (for thin or one-legged poses that splitting would cut apart)
 const SPRITES = {
   elephant:     { legTop: 0.68 },
   giraffe:      { legTop: 0.58 },
@@ -3771,7 +3777,7 @@ const SPRITES = {
   leopard:      { legTop: 0.62 },
   monkey:       { legTop: 0.8 },
   parrot:       { legTop: null },
-  flamingo:     { legTop: 0.55 },
+  flamingo:     { legTop: 0.55, legsTogether: true },
   lizard:       { legTop: 0.6 },
 };
 const SPRITE_PX = 256;
@@ -3828,11 +3834,13 @@ function spriteDrawer(name, fallback, { flying = false, rainbowHue = false } = {
       ctx.drawImage(img, -size / 2, -size, size, size);
     } else {
       const swing = Math.sin(step) * 0.35;
-      [[0, swing], [0.5, -swing]].forEach(([fx, skew]) => {
+      // Front and back halves swing opposite ways, or the whole lower part sways together
+      const pieces = sprite.legsTogether ? [[0, 1, swing * 0.6]] : [[0, 0.5, swing], [0.5, 0.5, -swing]];
+      pieces.forEach(([fx, fw, skew]) => {
         ctx.save();
         ctx.translate(0, -size * (1 - top));
         ctx.transform(1, 0, skew, 1, 0, 0);
-        ctx.drawImage(img, P * fx, P * top, P / 2, P * (1 - top), -size / 2 + size * fx, 0, size / 2, size * (1 - top));
+        ctx.drawImage(img, P * fx, P * top, P * fw, P * (1 - top), -size / 2 + size * fx, 0, size * fw, size * (1 - top));
         ctx.restore();
       });
       // Body drawn over the tops of the legs so no seam shows
