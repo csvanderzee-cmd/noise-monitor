@@ -214,7 +214,7 @@
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
     <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
   </div>
-  <button id="resetBtn" title="Put every setting back to its default and restart the quiet timers (collections are kept)">↺ Reset</button>
+  <button id="resetBtn" title="Put every setting back to its default and go back to the start screen (collections are kept)">↺ Reset</button>
   <button id="moreBtn" aria-expanded="false" aria-controls="moreSettings">⚙️ More settings</button>
   <!-- Everything below stays tucked away until "More settings" is opened -->
   <div id="moreSettings" hidden>
@@ -736,12 +736,22 @@ $('moreBtn').addEventListener('click', () => {
 
 // Puts every setting back to its default; the scene, class and collections stay as they are
 $('resetBtn').addEventListener('click', () => {
-  if (!confirm('Reset all settings and restart the quiet timers? Your scene, class and collections will be kept.')) return;
-  // Restart the Quiet time and Best timers (and the session report)
+  if (!confirm('Reset all settings and go back to the start screen? Your scene, class and collections will be kept.')) return;
+  // Turn the microphone off and clear the screen until Start is pressed again
+  if (micStream) micStream.getTracks().forEach(tr => tr.stop());
+  micStream = analyser = null;
+  session = null;
+  critters = [];
+  level = MIN_DB;
+  loud = false; overSince = underSince = null; warnProgress = 0;
+  document.body.classList.remove('loud', 'warning', 'clean', 'peek');
+  $('hideBtn').textContent = 'Hide controls';
+  // Restart the Quiet time and Best timers
   quietStart = performance.now();
   best = 0;
   $('streak').textContent = $('best').textContent = '0:00';
-  if (analyser) newSession();
+  $('error').textContent = '';
+  $('start').style.display = '';
   Object.entries(ACTIVITIES).forEach(([id, a]) => { presets[id] = { threshold: a.threshold, warnSec: a.warnSec }; });
   activity = 'partner';
   alertSound = lastSound = 'beep';
@@ -861,7 +871,7 @@ function slotCenter(id) {
 }
 
 // ---- Audio ----
-let audioCtx, analyser, buf;
+let audioCtx, analyser, buf, micStream;
 let level = MIN_DB;
 
 // Browsers only allow sound that starts from a click or key press, so the audio system is
@@ -880,6 +890,7 @@ $('startBtn').addEventListener('click', async () => {
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
     });
     ensureAudio();
+    micStream = stream;
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 2048;
     buf = new Float32Array(analyser.fftSize);
