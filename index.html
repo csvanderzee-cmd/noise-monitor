@@ -566,6 +566,42 @@ const SCENES = {
     foreground: safariFront,
     ambient: safariAmbient,
   },
+  pets: {
+    name: 'Pet Park',
+    // Hidden from the scene picker until it's been checked (preview with ?scene=pets)
+    hidden: true,
+    jarTitle: 'Pet Album',
+    emptyLabel: 'Empty album',
+    jarKey: 'noiseMonitorJar_pets',
+    intro: 'Puppies and kitties come out to play when the room is quiet. If it gets too loud, they run and hide!',
+    rareIntro: 'Stay quiet longer to meet rare pets. Keep one on screen long enough and it joins your pet album.',
+    size: [16, 19], rareSize: 17,
+    max: 14,
+    // Sparrows fly in the sky; dogs and cats walk around the yard
+    home: [0.08, 0.88, 0.12, 0.4],
+    ground: [0.66, 0.9],
+    glow: false,
+    commons: [
+      { kind: 'realDog',     weight: 45, colors: [[196, 140, 80], [120, 84, 52], [232, 214, 180], [60, 52, 48]], move: 'walk', speed: 60 },
+      { kind: 'realCat',     weight: 40, colors: [[236, 150, 70], [150, 150, 158], [55, 52, 58], [240, 236, 228]], move: 'walk', speed: 40, scale: 0.85 },
+      { kind: 'realSparrow', weight: 15, colors: [[150, 110, 75]], move: 'flutter', scale: 0.7 },
+    ],
+    rares: [
+      { id: 'corgi',     name: 'Corgi',         kind: 'realCorgi',     color: [226, 140, 60],  move: 'walk', speed: 55, quietSec: 30,  weight: 5,
+        fact: 'Corgis were bred to herd cattle. Their short legs helped them dodge kicks!' },
+      { id: 'siamese',   name: 'Siamese Cat',   kind: 'realSiamese',   color: [240, 226, 200], move: 'walk', speed: 40, scale: 0.85, quietSec: 60,  weight: 4,
+        fact: 'Siamese kittens are born almost all white. Their dark ears, face and paws fill in as they grow!' },
+      { id: 'dalmatian', name: 'Dalmatian',     kind: 'realDalmatian', color: [248, 248, 246], move: 'walk', speed: 60, quietSec: 120, weight: 3,
+        fact: 'Dalmatian puppies are born pure white and get their spots later.' },
+      { id: 'husky',     name: 'Husky',         kind: 'realHusky',     color: [150, 155, 165], move: 'walk', speed: 65, scale: 1.05, quietSec: 180, weight: 2,
+        fact: 'Huskies can run for hours in the snow, and some have one blue eye and one brown eye!' },
+      { id: 'rkitty',    name: 'Rainbow Kitty', kind: 'realCat',       color: null,            move: 'walk', speed: 40, scale: 0.85, quietSec: 300, weight: 1,
+        fact: 'Cats spend about two-thirds of their day sleeping!' },
+    ],
+    background: drawBackyard,
+    foreground: backyardFront,
+    ambient: gardenAmbient,
+  },
 };
 
 // ---- Activities ----
@@ -1861,6 +1897,99 @@ function safariFront(g, rand) {
   }
   rock(g, W * 0.06, H + 8, 90 * sc, 55 * sc, '#b98c6c');
   rock(g, W * 0.95, H + 8, 70 * sc, 45 * sc, '#c09474');
+}
+
+function drawBackyard(g, rand) {
+  const sky = g.createLinearGradient(0, 0, 0, H * 0.6);
+  sky.addColorStop(0, '#8fd0f5');
+  sky.addColorStop(1, '#dff3fb');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
+  const sc = Math.min(W, H) / 700;
+  // Sun
+  g.fillStyle = 'rgba(255,240,170,0.45)';
+  g.beginPath(); g.arc(W * 0.85, H * 0.14, 70 * sc, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffe680';
+  g.beginPath(); g.arc(W * 0.85, H * 0.14, 42 * sc, 0, Math.PI * 2); g.fill();
+
+  // Soft trees and a house in the distance
+  treeLine(g, H * 0.56, '#a9d69a', rand, 1.1);
+  const hx = W * 0.2, hy = H * 0.57, hw = 120 * sc, hh = 70 * sc;
+  g.fillStyle = '#f2e6d0';
+  g.fillRect(hx - hw / 2, hy - hh, hw, hh);
+  g.fillStyle = '#c8645a';
+  g.beginPath(); g.moveTo(hx - hw * 0.62, hy - hh); g.lineTo(hx, hy - hh * 1.75); g.lineTo(hx + hw * 0.62, hy - hh); g.fill();
+  g.fillStyle = '#9fd2ee';
+  [[-0.3, -0.62], [0.12, -0.62]].forEach(([dx, dy]) => g.fillRect(hx + dx * hw, hy + dy * hh, hw * 0.18, hh * 0.28));
+  g.fillStyle = '#8a5a3c';
+  g.fillRect(hx - hw * 0.06, hy - hh * 0.5, hw * 0.14, hh * 0.5);
+  haze(g, H * 0.56, H * 0.05, 'rgba(235,248,255,A)');
+
+  // Lawn with mowed stripes
+  const lawnY = H * 0.6;
+  g.fillStyle = '#7cc45c';
+  g.fillRect(0, lawnY, W, H - lawnY);
+  for (let i = 0, x = -W * 0.2; x < W * 1.2; i++, x += 70 * sc) {
+    g.fillStyle = i % 2 ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)';
+    g.beginPath(); g.moveTo(x, lawnY); g.lineTo(x + 70 * sc, lawnY); g.lineTo(x + 70 * sc + (x - W / 2) * 0.6, H); g.lineTo(x + (x - W / 2) * 0.6, H); g.fill();
+  }
+
+  // Wooden fence along the back of the yard
+  const fy = H * 0.62, ph = 46 * sc, pw = 14 * sc;
+  g.fillStyle = '#b9895a';
+  g.fillRect(0, fy - ph * 0.75, W, 6 * sc);
+  g.fillRect(0, fy - ph * 0.35, W, 6 * sc);
+  g.fillStyle = '#c89a68';
+  for (let x = 4; x < W; x += pw * 1.6) {
+    g.beginPath(); g.moveTo(x, fy); g.lineTo(x, fy - ph); g.lineTo(x + pw / 2, fy - ph - pw * 0.5); g.lineTo(x + pw, fy - ph); g.lineTo(x + pw, fy); g.fill();
+  }
+
+  // Big shade tree
+  const tx = W * 0.86, ty = H * 0.68;
+  g.fillStyle = '#7a5236';
+  g.fillRect(tx - 10 * sc, ty - 130 * sc, 20 * sc, 130 * sc);
+  bush(g, tx, ty - 150 * sc, 70 * sc, '#5ea64a', '#4b8f3b');
+
+  // Doghouse
+  const dx = W * 0.08, dy = H * 0.74, dw = 70 * sc, dh = 50 * sc;
+  g.fillStyle = '#d0634f';
+  g.fillRect(dx - dw / 2, dy - dh, dw, dh);
+  g.fillStyle = '#8f3d33';
+  g.beginPath(); g.moveTo(dx - dw * 0.62, dy - dh); g.lineTo(dx, dy - dh * 1.6); g.lineTo(dx + dw * 0.62, dy - dh); g.fill();
+  g.fillStyle = '#3a2a24';
+  g.beginPath(); g.moveTo(dx - dw * 0.2, dy); g.lineTo(dx - dw * 0.2, dy - dh * 0.55); g.arc(dx, dy - dh * 0.55, dw * 0.2, Math.PI, 0); g.lineTo(dx + dw * 0.2, dy); g.fill();
+
+  // Flower bushes and grass tufts
+  [[0.32, 0.64, 20], [0.56, 0.63, 16], [0.72, 0.66, 22]].forEach(([fx, fy2, r]) => {
+    bush(g, W * fx, H * fy2, r * sc, '#69b34f', '#579c40');
+    ['#ff8fb1', '#ffd34d', '#ffffff'].forEach((col, i) => {
+      g.fillStyle = col;
+      g.beginPath(); g.arc(W * fx + (i - 1) * r * 0.6 * sc, H * fy2 - r * 0.4 * sc, 3.5 * sc, 0, Math.PI * 2); g.fill();
+    });
+  });
+  g.strokeStyle = '#64ae48';
+  g.lineWidth = 2;
+  for (let i = 0; i < 90; i++) {
+    const x = rand() * W, y = lawnY + 10 + rand() * (H - lawnY - 10);
+    g.beginPath(); g.moveTo(x - 3, y); g.lineTo(x - 5, y - 7); g.moveTo(x, y); g.lineTo(x, y - 9); g.moveTo(x + 3, y); g.lineTo(x + 5, y - 7); g.stroke();
+  }
+}
+
+// Grass along the front, a red ball and a chew bone in the corners
+function backyardFront(g, rand) {
+  const sc = Math.min(W, H) / 700;
+  for (let x = -10; x < W + 20; x += 50 + rand() * 70) grassClump(g, x, H + 4, (26 + rand() * 24) * sc, '#5aa63f', 7);
+  g.fillStyle = '#e8483f';
+  g.beginPath(); g.arc(W * 0.1, H - 22 * sc, 22 * sc, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#ffffff';
+  g.lineWidth = 3 * sc;
+  g.beginPath(); g.arc(W * 0.1, H - 22 * sc, 22 * sc, -0.6, 0.9); g.stroke();
+  const bx = W * 0.92, by = H - 16 * sc, bl = 34 * sc;
+  g.fillStyle = '#f4ead6';
+  g.fillRect(bx - bl / 2, by - 5 * sc, bl, 10 * sc);
+  [-1, 1].forEach(side => [-1, 1].forEach(up => {
+    g.beginPath(); g.arc(bx + side * bl / 2, by + up * 5 * sc, 7 * sc, 0, Math.PI * 2); g.fill();
+  }));
 }
 
 // Floating asteroids in the near corners
@@ -3423,6 +3552,9 @@ function drawMoodBubble(k, x, y) {
 // Walk phase (radians) tied to ground speed so feet don't slide; 0 when standing.
 // Returns [phase, amount], where amount eases the stride in and out.
 function gaitPhase(k, t, s, strideLen) {
+  // Only advance once per frame, even if a drawer asks twice (e.g. to pick sitting vs walking)
+  if (k.gaitT === t) return [k.gaitPhase, k.gaitAmt];
+  k.gaitT = t;
   k.gaitAmt = k.gaitAmt || 0;
   const moving = Math.abs(k.vx) > 5;
   k.gaitAmt += ((moving ? 1 : 0) - k.gaitAmt) * 0.15;
@@ -3899,6 +4031,238 @@ Object.assign(DRAW, {
         realEye(s * 0.48, -s * 0.58, s * 0.03);
       },
     });
+  },
+});
+
+// ---- Pet Park: dogs and cats in the same realistic style ----
+
+// A dog built on the walking skeleton. Options: hip (leg height), bodyLen, ears ('floppy' | 'pointy' |
+// 'big'), tail ('wag' | 'curl' | 'stub'), earColor, muzzle, pattern() for spots/patches, face() for masks.
+function drawDog(s, t, c, k, o = {}) {
+  const coat = rgb(c), dark = rgb(mix(c, BLACK, 0.3));
+  const hip = o.hip || 0.62, len = o.bodyLen || 0.55;
+  const ears = o.ears || (Math.floor(k.phase * 10) % 2 ? 'pointy' : 'floppy');
+  const by = -(hip + 0.18);
+  const hx = (len + 0.18) * s, hy = (by - 0.3) * s;
+  walkQuad(s, t, k, {
+    gait: 'walk', strideLen: 0.9, bob: 0.03, stride: 0.32, bend: 0.8,
+    backX: -len * 0.8, frontX: len * 0.55, hip, upper: hip * 0.48, w1: 0.13, w2: 0.09,
+    color: coat, farColor: rgb(mix(c, BLACK, 0.15)), hoof: dark, head: [len + 0.18, by - 0.3],
+    body: () => {
+      // Tail: wags fast when happy
+      const wag = Math.sin(t * (k.mood === 'happy' ? 12 : 4) + k.phase) * 0.35;
+      ctx.strokeStyle = coat;
+      ctx.lineCap = 'round';
+      if (o.tail === 'stub') {
+        ctx.fillStyle = coat;
+        ctx.beginPath(); ctx.ellipse(-len * s, by * s - s * 0.05, s * 0.07, s * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+      } else if (o.tail === 'curl') {
+        ctx.lineWidth = s * 0.1;
+        ctx.beginPath(); ctx.arc(-len * s * 0.85, by * s - s * 0.2, s * 0.16, Math.PI * 0.4 + wag * 0.3, Math.PI * 2.0); ctx.stroke();
+      } else {
+        ctx.save();
+        ctx.translate(-len * s, by * s - s * 0.05);
+        ctx.rotate(wag);
+        ctx.lineWidth = s * 0.07;
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(-s * 0.2, -s * 0.1, -s * 0.24, -s * 0.36); ctx.stroke();
+        ctx.restore();
+      }
+      // Body, chest and neck
+      fillWithPattern(() => {
+        ctx.beginPath();
+        ctx.ellipse(-s * 0.05, by * s, len * s, s * 0.22, 0, 0, Math.PI * 2);
+        ctx.moveTo(len * s * 0.9, by * s);
+        ctx.arc(len * s * 0.7, by * s - s * 0.04, s * 0.2, 0, Math.PI * 2);
+        ctx.moveTo(len * s * 0.55, by * s - s * 0.15);
+        ctx.lineTo(hx - s * 0.08, hy - s * 0.1);
+        ctx.lineTo(hx + s * 0.02, hy + s * 0.14);
+        ctx.lineTo(len * s * 0.9, by * s + s * 0.05);
+        ctx.closePath();
+        ctx.moveTo(hx + s * 0.17, hy);
+        ctx.arc(hx, hy, s * 0.17, 0, Math.PI * 2);
+        ctx.ellipse(hx + s * 0.17, hy + s * 0.05, s * 0.13, s * 0.085, 0, 0, Math.PI * 2);
+      }, coat, () => o.pattern && o.pattern(by, hx, hy));
+      if (o.muzzle) {
+        ctx.fillStyle = o.muzzle;
+        ctx.beginPath(); ctx.ellipse(hx + s * 0.18, hy + s * 0.07, s * 0.11, s * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      if (o.face) o.face(hx, hy);
+      // Ears
+      ctx.fillStyle = o.earColor || dark;
+      if (ears === 'floppy') {
+        ctx.beginPath(); ctx.ellipse(hx - s * 0.07, hy + s * 0.04, s * 0.06, s * 0.14, 0.25, 0, Math.PI * 2); ctx.fill();
+      } else {
+        const big = ears === 'big' ? 1.4 : 1;
+        ctx.beginPath(); ctx.moveTo(hx - s * 0.12, hy - s * 0.08); ctx.lineTo(hx - s * 0.06, hy - s * 0.3 * big); ctx.lineTo(hx + s * 0.04, hy - s * 0.12); ctx.fill();
+      }
+      // Nose, eye and red collar
+      ctx.fillStyle = 'rgb(35,28,26)';
+      ctx.beginPath(); ctx.arc(hx + s * 0.29, hy + s * 0.02, s * 0.04, 0, Math.PI * 2); ctx.fill();
+      realEye(hx + s * 0.06, hy - s * 0.04, s * 0.03);
+      ctx.strokeStyle = 'rgb(220,60,60)';
+      ctx.lineWidth = s * 0.05;
+      ctx.beginPath(); ctx.moveTo(hx - s * 0.18, hy + s * 0.08); ctx.lineTo(hx - s * 0.06, hy + s * 0.2); ctx.stroke();
+    },
+  });
+}
+
+// A cat's head facing right: pointed ears, green eye with a slit pupil, pink nose and whiskers
+function catHead(s, hx, hy, coat, ears, mask) {
+  ctx.fillStyle = ears;
+  [[-0.1, -0.02], [0.03, 0.06]].forEach(([dx, tip]) => {
+    ctx.beginPath(); ctx.moveTo(hx + (dx - 0.06) * s, hy - s * 0.08); ctx.lineTo(hx + (dx + tip) * s, hy - s * 0.27); ctx.lineTo(hx + (dx + 0.08) * s, hy - s * 0.1); ctx.fill();
+  });
+  ctx.fillStyle = coat;
+  ctx.beginPath(); ctx.arc(hx, hy, s * 0.15, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(hx + s * 0.12, hy + s * 0.05, s * 0.08, s * 0.06, 0, 0, Math.PI * 2); ctx.fill();
+  if (mask) {
+    ctx.fillStyle = mask;
+    ctx.beginPath(); ctx.ellipse(hx + s * 0.1, hy + s * 0.03, s * 0.11, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = 'rgb(140,200,90)';
+  ctx.beginPath(); ctx.ellipse(hx + s * 0.06, hy - s * 0.03, s * 0.035, s * 0.025, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgb(30,25,25)';
+  ctx.beginPath(); ctx.ellipse(hx + s * 0.065, hy - s * 0.03, s * 0.01, s * 0.022, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgb(240,140,160)';
+  ctx.beginPath(); ctx.arc(hx + s * 0.19, hy + s * 0.03, s * 0.022, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+  ctx.lineWidth = 1;
+  [0.02, 0.07].forEach(dy => { ctx.beginPath(); ctx.moveTo(hx + s * 0.15, hy + s * 0.06); ctx.lineTo(hx + s * 0.34, hy + s * dy); ctx.stroke(); });
+}
+
+// A cat: slinks along on the walking skeleton, then sits with its tail wrapped around when it stops.
+// Options: points (dark ears/face/legs/tail, like a Siamese); orange coats get tabby stripes.
+function drawCat(s, t, c, k, o = {}) {
+  const coat = rgb(c), dark = rgb(mix(c, BLACK, 0.3));
+  const points = o.points || null;
+  const tabby = c[0] > 200 && c[2] < 110;
+  const stripes = () => {
+    if (!tabby) return;
+    ctx.strokeStyle = rgb(mix(c, BLACK, 0.22));
+    ctx.lineWidth = s * 0.05;
+    for (let i = 0; i < 7; i++) { const x = (-0.45 + i * 0.13) * s; ctx.beginPath(); ctx.moveTo(x, -s * 0.9); ctx.lineTo(x + s * 0.05, -s * 0.5); ctx.stroke(); }
+  };
+  const tailColor = points || coat;
+  const [, amt] = gaitPhase(k, t, s, 0.8);
+  if (amt > 0.4) {
+    walkQuad(s, t, k, {
+      gait: 'walk', strideLen: 0.8, bob: 0.02, stride: 0.3, bend: 0.85,
+      backX: -0.4, frontX: 0.3, hip: 0.5, upper: 0.24, w1: 0.1, w2: 0.07,
+      color: points || coat, farColor: points || dark, hoof: points || coat, head: [0.58, -0.86],
+      body: () => {
+        // Long tail held up in a gentle curve
+        const sway = Math.sin(t * 1.6 + k.phase) * 0.08;
+        ctx.strokeStyle = tailColor;
+        ctx.lineWidth = s * 0.07;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-s * 0.45, -s * 0.7); ctx.bezierCurveTo(-s * 0.85, -s * 0.72, -s * (0.78 + sway), -s * 1.15, -s * (0.95 + sway), -s * 1.2); ctx.stroke();
+        fillWithPattern(() => {
+          ctx.beginPath();
+          ctx.ellipse(-s * 0.03, -s * 0.66, s * 0.48, s * 0.17, -0.04, 0, Math.PI * 2);
+          ctx.moveTo(s * 0.35, -s * 0.72); ctx.lineTo(s * 0.48, -s * 0.92); ctx.lineTo(s * 0.6, -s * 0.78); ctx.lineTo(s * 0.42, -s * 0.58); ctx.closePath();
+        }, coat, stripes);
+        catHead(s, s * 0.58, -s * 0.86, coat, points || coat, points);
+      },
+    });
+    return;
+  }
+  // Sitting: haunch, upright chest, front legs, tail curled around the paws
+  ctx.save();
+  ctx.translate(0, s * 1.35);
+  ctx.strokeStyle = tailColor;
+  ctx.lineWidth = s * 0.07;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-s * 0.32, -s * 0.06); ctx.quadraticCurveTo(-s * 0.1, s * 0.04, s * 0.32, -s * 0.03); ctx.stroke();
+  fillWithPattern(() => {
+    ctx.beginPath();
+    ctx.ellipse(-s * 0.1, -s * 0.24, s * 0.28, s * 0.24, 0, 0, Math.PI * 2);
+    ctx.ellipse(s * 0.1, -s * 0.46, s * 0.17, s * 0.3, 0.25, 0, Math.PI * 2);
+  }, coat, () => { ctx.save(); ctx.translate(s * 0.25, s * 0.35); stripes(); ctx.restore(); });
+  ctx.strokeStyle = points || coat;
+  ctx.lineWidth = s * 0.08;
+  [0.14, 0.24].forEach(x => { ctx.beginPath(); ctx.moveTo(x * s, -s * 0.4); ctx.lineTo((x + 0.02) * s, -s * 0.03); ctx.stroke(); });
+  catHead(s, s * 0.18, -s * 0.82, coat, points || coat, points);
+  ctx.restore();
+  drawMoodBubble(k, s * 0.18, -s * 1.25 + s * 1.35);
+}
+
+Object.assign(DRAW, {
+  realDog(s, t, c, k) { drawDog(s, t, c, k); },
+
+  realCat(s, t, c, k) { drawCat(s, t, c, k); },
+
+  realCorgi(s, t, c, k) {
+    drawDog(s, t, c, k, {
+      hip: 0.38, bodyLen: 0.62, ears: 'big', tail: 'stub', earColor: rgb(c), muzzle: 'rgb(250,246,238)',
+      pattern: by => {
+        ctx.fillStyle = 'rgb(250,246,238)';
+        ctx.beginPath(); ctx.ellipse(s * 0.35, by * s + s * 0.1, s * 0.3, s * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+      },
+    });
+  },
+
+  realDalmatian(s, t, c, k) {
+    drawDog(s, t, c, k, {
+      ears: 'floppy', earColor: 'rgb(30,30,32)',
+      pattern: (by, hx, hy) => {
+        ctx.fillStyle = 'rgb(30,30,32)';
+        // Scattered spots from a fixed pseudo-random pattern
+        const rnd = n => { const v = Math.sin(n) * 43758.5453; return v - Math.floor(v); };
+        for (let i = 0; i < 26; i++) {
+          const x = -0.6 + rnd(i * 12.99) * 1.25, y = by - 0.2 + rnd(i * 78.23) * 0.4;
+          ctx.beginPath(); ctx.arc(x * s, y * s, s * (0.025 + rnd(i * 3.7) * 0.025), 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.beginPath(); ctx.arc(hx - s * 0.04, hy - s * 0.08, s * 0.03, 0, Math.PI * 2); ctx.fill();
+      },
+    });
+  },
+
+  realHusky(s, t, c, k) {
+    const white = 'rgb(246,246,246)';
+    drawDog(s, t, c, k, {
+      ears: 'pointy', tail: 'curl', earColor: rgb(mix(c, BLACK, 0.2)), muzzle: white,
+      pattern: by => {
+        ctx.fillStyle = white;
+        ctx.beginPath(); ctx.ellipse(s * 0.05, by * s + s * 0.14, s * 0.5, s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+      },
+      face: (hx, hy) => {
+        ctx.fillStyle = white;
+        ctx.beginPath(); ctx.ellipse(hx + s * 0.06, hy + s * 0.04, s * 0.12, s * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(hx + s * 0.07, hy - s * 0.07, s * 0.05, s * 0.025, 0, 0, Math.PI * 2); ctx.fill();
+      },
+    });
+  },
+
+  realSiamese(s, t, c, k) { drawCat(s, t, c, k, { points: 'rgb(92,64,50)' }); },
+
+  // Sparrow: small brown bird flapping across the sky
+  realSparrow(s, t, c, k) {
+    const flap = Math.sin(t * 16 + k.phase);
+    const brown = rgb(c), dark = rgb(mix(c, BLACK, 0.35)), pale = 'rgb(232,222,206)';
+    const wing = (angle, col) => {
+      ctx.save();
+      ctx.translate(-s * 0.02, -s * 0.06);
+      ctx.rotate(angle);
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.ellipse(-s * 0.22, 0, s * 0.26, s * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    wing(0.5 + flap * 0.9, dark);
+    ctx.fillStyle = dark;
+    ctx.beginPath(); ctx.moveTo(-s * 0.25, -s * 0.02); ctx.lineTo(-s * 0.55, -s * 0.08); ctx.lineTo(-s * 0.52, s * 0.06); ctx.lineTo(-s * 0.25, s * 0.06); ctx.fill();
+    ctx.fillStyle = brown;
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.3, s * 0.16, -0.08, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = pale;
+    ctx.beginPath(); ctx.ellipse(s * 0.04, s * 0.07, s * 0.2, s * 0.08, -0.08, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = brown;
+    ctx.beginPath(); ctx.arc(s * 0.27, -s * 0.08, s * 0.12, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgb(170,170,175)';
+    ctx.beginPath(); ctx.ellipse(s * 0.3, -s * 0.04, s * 0.06, s * 0.04, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgb(60,50,45)';
+    ctx.beginPath(); ctx.moveTo(s * 0.37, -s * 0.1); ctx.lineTo(s * 0.47, -s * 0.07); ctx.lineTo(s * 0.37, -s * 0.04); ctx.fill();
+    realEye(s * 0.3, -s * 0.1, s * 0.022);
+    wing(-0.2 + flap * 0.9, brown);
+    drawMoodBubble(k, s * 0.27, -s * 0.4);
   },
 });
 
