@@ -36,6 +36,10 @@
     padding: 6px 14px; border-radius: 8px; cursor: pointer;
   }
   #controls { transition: opacity 0.3s, transform 0.3s; }
+  /* Extra settings sit in the same row layout as the basics once opened */
+  #moreSettings { display: contents; }
+  #moreSettings[hidden] { display: none; }
+  #controls #moreBtn { background: rgba(255,255,255,0.15); color: #fff; }
   #controls button:disabled { opacity: 0.5; cursor: default; }
   #volume { width: 90px; accent-color: #ffd84d; }
 
@@ -205,13 +209,16 @@
     <label for="classPick">Class:</label>
     <select id="classPick"></select>
   </div>
-  <div class="group" id="activityBtns">
-    <span>Activity:</span>
-  </div>
   <div class="group">
     <label for="threshold">Noise limit: <b id="thresholdVal">70</b></label>
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
     <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
+  </div>
+  <button id="moreBtn" aria-expanded="false" aria-controls="moreSettings">⚙️ More settings</button>
+  <!-- Everything below stays tucked away until "More settings" is opened -->
+  <div id="moreSettings" hidden>
+  <div class="group" id="activityBtns">
+    <span>Activity:</span>
   </div>
   <div class="group">
     <label for="warnTime">Warning time: <b id="warnTimeVal">3</b> sec</label>
@@ -249,6 +256,7 @@
   <button id="hideBtn">Hide controls</button>
   <button id="fsBtn">Fullscreen</button>
   <span class="hint">Keys: H hide · F fullscreen · 1–3 activity · M sound</span>
+  </div>
 </header>
 <div id="peekTab">Move the mouse here or press H for controls</div>
 
@@ -522,6 +530,8 @@ const SCENES = {
   },
   safari: {
     name: 'Savanna Safari',
+    // Hidden from the scene picker until the picture animals' flapping and jitter are fixed
+    hidden: true,
     jarTitle: 'Safari Jeep',
     emptyLabel: 'Empty jeep',
     jarKey: 'noiseMonitorJar_safari',
@@ -584,7 +594,7 @@ try {
   if (typeof saved.volume === 'number') volume = saved.volume;
   if (saved.chimeOn === false) chimeOn = false;
   if (saved.softOn) softOn = true;
-  if (SCENES[saved.scene]) sceneId = saved.scene;
+  if (SCENES[saved.scene] && !SCENES[saved.scene].hidden) sceneId = saved.scene;
   if (ACTIVITIES[saved.activity]) activity = saved.activity;
   if (CLASSES.some(c => c.id === saved.classId)) classId = saved.classId;
   if (saved.presets) {
@@ -680,11 +690,19 @@ function toggleFullscreen() {
 }
 $('fsBtn').addEventListener('click', toggleFullscreen);
 
+// The page starts with just the basics; everything else opens under "More settings"
+$('moreBtn').addEventListener('click', () => {
+  const open = $('moreSettings').hidden;
+  $('moreSettings').hidden = !open;
+  $('moreBtn').textContent = open ? '⚙️ Fewer settings' : '⚙️ More settings';
+  $('moreBtn').setAttribute('aria-expanded', open);
+});
+
 const pct = db => Math.max(0, Math.min(100, (db - MIN_DB) / (MAX_DB - MIN_DB) * 100));
 
 // ---- Scene picker ----
 const scenePick = $('scenePick');
-scenePick.innerHTML = Object.entries(SCENES).map(([id, s]) => `<option value="${id}">${s.name}</option>`).join('');
+scenePick.innerHTML = Object.entries(SCENES).filter(([, s]) => !s.hidden).map(([id, s]) => `<option value="${id}">${s.name}</option>`).join('');
 scenePick.value = sceneId;
 scenePick.addEventListener('change', () => {
   sceneId = scenePick.value;
