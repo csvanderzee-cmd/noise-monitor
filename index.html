@@ -214,7 +214,7 @@
     <input type="range" id="threshold" min="40" max="100" step="1" value="70">
     <span class="hint" title="Numbers are a relative noise level from your microphone, not calibrated decibels. They vary between devices.">(lower = more sensitive · relative scale, not decibels)</span>
   </div>
-  <button id="resetBtn" title="Put every setting back to its default (collections are kept)">↺ Reset</button>
+  <button id="resetBtn" title="Put every setting back to its default and restart the quiet timers (collections are kept)">↺ Reset</button>
   <button id="moreBtn" aria-expanded="false" aria-controls="moreSettings">⚙️ More settings</button>
   <!-- Everything below stays tucked away until "More settings" is opened -->
   <div id="moreSettings" hidden>
@@ -701,7 +701,12 @@ $('moreBtn').addEventListener('click', () => {
 
 // Puts every setting back to its default; the scene, class and collections stay as they are
 $('resetBtn').addEventListener('click', () => {
-  if (!confirm('Reset all settings to their defaults? Your scene, class and collections will be kept.')) return;
+  if (!confirm('Reset all settings and restart the quiet timers? Your scene, class and collections will be kept.')) return;
+  // Restart the Quiet time and Best timers (and the session report)
+  quietStart = performance.now();
+  best = 0;
+  $('streak').textContent = $('best').textContent = '0:00';
+  if (analyser) newSession();
   Object.entries(ACTIVITIES).forEach(([id, a]) => { presets[id] = { threshold: a.threshold, warnSec: a.warnSec }; });
   activity = 'partner';
   alertSound = lastSound = 'beep';
