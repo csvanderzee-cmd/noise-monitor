@@ -531,6 +531,8 @@ const SCENES = {
   },
   safari: {
     name: 'Savanna Safari',
+    // Hidden from the scene picker until better walking animal art is found (preview with ?scene=safari)
+    hidden: true,
     jarTitle: 'Safari Jeep',
     emptyLabel: 'Empty jeep',
     jarKey: 'noiseMonitorJar_safari',
@@ -3789,10 +3791,37 @@ Object.entries(SPRITES).forEach(([name, sprite]) => {
     sprite.canvas = document.createElement('canvas');
     sprite.canvas.width = sprite.canvas.height = SPRITE_PX;
     sprite.canvas.getContext('2d').drawImage(img, 0, 0, SPRITE_PX, SPRITE_PX);
+    if (sprite.legTop && !sprite.legsTogether) sprite.splitX = findLegGap(sprite.canvas);
     renderJar();
   };
   img.src = `assets/fluent/${name}.svg`;
 });
+
+// Finds an empty column between the front and back feet (nearest the middle), so each pair swings
+// whole instead of a leg being cut in two. Returns null when the feet touch.
+function findLegGap(cv) {
+  const P = cv.width, y0 = Math.round(P * 0.82), y1 = Math.round(P * 0.95), rows = y1 - y0;
+  const data = cv.getContext('2d').getImageData(0, y0, P, rows).data;
+  const empty = [];
+  for (let x = 0; x < P; x++) {
+    let solid = false;
+    for (let y = 0; y < rows && !solid; y++) solid = data[(y * P + x) * 4 + 3] > 30;
+    empty.push(!solid);
+  }
+  let best = null;
+  for (let x = 0; x < P;) {
+    if (!empty[x]) { x++; continue; }
+    let end = x;
+    while (end < P && empty[end]) end++;
+    // Only gaps with feet on both sides count
+    if (x > 0 && end < P) {
+      const mid = (x + end) / 2 / P;
+      if (best === null || Math.abs(mid - 0.5) < Math.abs(best - 0.5)) best = mid;
+    }
+    x = end;
+  }
+  return best;
+}
 
 // Draws a picture critter walking: bob, sway, and front/back legs swinging opposite ways.
 // Falls back to the hand-drawn critter if the picture hasn't loaded.
@@ -3834,7 +3863,8 @@ function spriteDrawer(name, fallback, { flying = false, rainbowHue = false } = {
     } else {
       const swing = Math.sin(step) * 0.35;
       // Front and back halves swing opposite ways, or the whole lower part sways together
-      const pieces = sprite.legsTogether ? [[0, 1, swing * 0.6]] : [[0, 0.5, swing], [0.5, 0.5, -swing]];
+      const split = sprite.splitX;
+      const pieces = split == null ? [[0, 1, swing * 0.6]] : [[0, split, swing], [split, 1 - split, -swing]];
       pieces.forEach(([fx, fw, skew]) => {
         ctx.save();
         ctx.translate(0, -size * (1 - top));
