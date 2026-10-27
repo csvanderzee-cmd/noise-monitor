@@ -294,7 +294,6 @@
   <p id="startRares"></p>
   <button id="startBtn">Start</button>
   <p class="privacy">🔒 The microphone only measures how loud the room is, right here on this computer. Nothing is ever recorded, saved or sent anywhere.</p>
-  <p class="privacy">Safari animal art: <a href="https://github.com/microsoft/fluentui-emoji" target="_blank" rel="noopener">Microsoft Fluent Emoji</a> (MIT License).</p>
   <p id="error"></p>
 </div>
 
@@ -538,31 +537,31 @@ const SCENES = {
     jarKey: 'noiseMonitorJar_safari',
     intro: 'Baby animals wander out when the room is quiet. If it gets too loud, they get scared and run away!',
     rareIntro: 'Stay quiet longer to spot rare safari animals. Keep one on screen long enough and it hops in your jeep.',
-    size: [9, 11], rareSize: 11,
+    size: [12, 14], rareSize: 13,
     max: 16,
     // Parrots fly in the sky; everyone else walks across the savanna
     home: [0.08, 0.88, 0.12, 0.42],
     ground: [0.64, 0.9],
     glow: false,
-    // Animals are Fluent Emoji pictures (colors are only used by the hand-drawn fallback).
-    // scale keeps them roughly in real-life proportion: giraffes tallest, chameleons tiny
+    // Each drawing already has real-life proportions built in (giraffes tallest); scale fine-tunes
+    // them, and keeps small animals visible from the back of the room
     commons: [
-      { kind: 'picElephant', weight: 60, colors: [[160, 170, 195], [178, 172, 190]], move: 'walk', speed: 35, scale: 1.5 },
-      { kind: 'picGiraffe',  weight: 12, colors: [[245, 200, 90]], move: 'walk', speed: 40, scale: 1.6 },
-      { kind: 'picZebra',    weight: 12, colors: [[245, 245, 245]], move: 'walk', speed: 55, scale: 1.0 },
-      { kind: 'picMonkey',   weight: 8,  colors: [[210, 170, 120]], move: 'sit', speed: 60, scale: 0.6 },
-      { kind: 'picParrot',   weight: 8,  colors: [[230, 70, 60], [60, 160, 230], [90, 200, 110]], move: 'flutter', scale: 0.45 },
+      { kind: 'realElephant', weight: 60, colors: [[152, 160, 178]], move: 'walk', speed: 35, scale: 1.2 },
+      { kind: 'realGiraffe',  weight: 12, colors: [[242, 194, 90]], move: 'walk', speed: 40 },
+      { kind: 'realZebra',    weight: 12, colors: [[246, 246, 244]], move: 'walk', speed: 55, scale: 0.8 },
+      { kind: 'realMonkey',   weight: 8,  colors: [[150, 128, 100]], move: 'sit', speed: 60, scale: 0.7 },
+      { kind: 'realParrot',   weight: 8,  colors: [[220, 50, 50], [40, 130, 210], [60, 170, 80]], move: 'flutter', scale: 0.6 },
     ],
     rares: [
-      { id: 'flamingo',  name: 'Pink Flamingo',     kind: 'picFlamingo',  color: [255, 140, 180], move: 'walk', speed: 40, scale: 0.7,  quietSec: 30,  weight: 5,
+      { id: 'flamingo',  name: 'Pink Flamingo',     kind: 'realFlamingo',  color: [244, 150, 180], move: 'walk', speed: 40, scale: 0.6,  quietSec: 30,  weight: 5,
         fact: 'Flamingos are pink because of the shrimp and algae they eat!' },
-      { id: 'hippo',     name: 'Happy Hippo',       kind: 'picHippo',     color: [175, 145, 185], move: 'walk', speed: 30, scale: 1.2,  quietSec: 60,  weight: 4,
+      { id: 'hippo',     name: 'Happy Hippo',       kind: 'realHippo',     color: [150, 132, 160], move: 'walk', speed: 30, scale: 1.1,  quietSec: 60,  weight: 4,
         fact: 'Hippos can hold their breath underwater for about 5 minutes!' },
-      { id: 'rhino',     name: 'Little Rhino',      kind: 'picRhino',     color: [155, 155, 168], move: 'walk', speed: 35, scale: 1.25, quietSec: 120, weight: 3,
+      { id: 'rhino',     name: 'Little Rhino',      kind: 'realRhino',     color: [158, 162, 168], move: 'walk', speed: 35, scale: 1.05, quietSec: 120, weight: 3,
         fact: "A rhino's horn is made of keratin, the same stuff as your fingernails!" },
-      { id: 'leopard',   name: 'Speedy Leopard',    kind: 'picLeopard',   color: [238, 192, 92],  move: 'walk', speed: 90, scale: 0.85, quietSec: 180, weight: 2,
+      { id: 'leopard',   name: 'Speedy Leopard',    kind: 'realLeopard',   color: [232, 178, 82],  move: 'walk', speed: 90, scale: 0.85, quietSec: 180, weight: 2,
         fact: 'Leopards are super climbers and often carry their food up into trees!' },
-      { id: 'chameleon', name: 'Rainbow Chameleon', kind: 'picChameleon', color: null,            move: 'walk', speed: 25, scale: 0.45, quietSec: 300, weight: 1,
+      { id: 'chameleon', name: 'Rainbow Chameleon', kind: 'realChameleon', color: null,            move: 'walk', speed: 25, scale: 0.8,  quietSec: 300, weight: 1,
         fact: 'Chameleons change color to show how they feel and to warm up or cool down!' },
     ],
     background: drawSafari,
@@ -3358,368 +3357,8 @@ const DRAW = {
     drawFace(k, s, t, -0.3, -0.05);
   },
 
-  // ---- Safari animals: big round head (with the face) in front, body behind ----
-  elephant(s, t, c, k) {
-    const dark = mix(c, BLACK, 0.3);
-    quadBody(s, t, k, c, { rx: 1.05, ry: 0.7, legW: 0.3, legLen: 0.5 });
-    // Big floppy ear
-    ctx.fillStyle = rgb(mix(c, BLACK, 0.08));
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(-s * 0.65, -s * 0.05, s * 0.6, s * 0.78, -0.2, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(240,160,180,0.55)';
-    ctx.beginPath(); ctx.ellipse(-s * 0.65, -s * 0.05, s * 0.38, s * 0.55, -0.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = rgb(c);
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Trunk grows out of the face, hangs down and curls up at the tip, swinging a little
-    const swing = Math.sin(t * 2 + k.phase) * s * 0.1;
-    const trunk = () => {
-      ctx.beginPath();
-      ctx.moveTo(s * 0.35, s * 0.25);
-      ctx.bezierCurveTo(s * 0.75, s * 0.55, s * 0.8, s * 1.15, s * 1.15, s * 1.0);
-      ctx.quadraticCurveTo(s * 1.4, s * 0.85, s * 1.3, s * 0.6 + swing);
-    };
-    ctx.lineCap = 'round';
-    // Outline only outside the head so the trunk blends into the face
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(-s * 3, -s * 3, s * 6, s * 6);
-    ctx.arc(0, 0, s * 0.98, 0, Math.PI * 2, true);
-    ctx.clip();
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = s * 0.38;
-    trunk(); ctx.stroke();
-    ctx.restore();
-    ctx.strokeStyle = rgb(c);
-    ctx.lineWidth = s * 0.3;
-    trunk(); ctx.stroke();
-    // A couple of wrinkles near the tip
-    ctx.strokeStyle = rgb(mix(c, BLACK, 0.18));
-    ctx.lineWidth = Math.max(1, s * 0.05);
-    [[0.95, 0.98], [1.08, 1.0]].forEach(([x, y]) => {
-      ctx.beginPath(); ctx.moveTo(x * s, (y - 0.12) * s); ctx.lineTo((x + 0.04) * s, (y + 0.12) * s); ctx.stroke();
-    });
-    drawFace(k, s, t, -0.4, -0.05);
-  },
-
-  zebra(s, t, c, k) {
-    const body = quadBody(s, t, k, c, { rx: 1.0, ry: 0.6, legW: 0.22, legLen: 0.6 });
-    // Stripes on the body
-    ctx.save();
-    ctx.beginPath(); ctx.ellipse(body.bodyX * s, body.bodyY * s, body.rx * s, body.ry * s, 0, 0, Math.PI * 2); ctx.clip();
-    ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = s * 0.16;
-    for (let i = 0; i < 6; i++) {
-      const x = (body.bodyX - body.rx + 0.3 + i * 0.35) * s;
-      ctx.beginPath(); ctx.moveTo(x, (body.bodyY - body.ry) * s); ctx.quadraticCurveTo(x + s * 0.15, body.bodyY * s, x, (body.bodyY + body.ry) * s); ctx.stroke();
-    }
-    ctx.restore();
-    // Spiky mane and pointy ears
-    ctx.fillStyle = '#2a2a2a';
-    for (let i = 0; i < 6; i++) {
-      const a = Math.PI * (1.05 + i * 0.09);
-      ctx.beginPath(); ctx.arc(Math.cos(a) * s * 0.98, Math.sin(a) * s * 0.98, s * 0.2, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = '#555';
-    ctx.lineWidth = 1.5;
-    [-0.35, 0.3].forEach(ex => {
-      ctx.beginPath(); ctx.moveTo((ex - 0.18) * s, -s * 0.8); ctx.lineTo(ex * s, -s * 1.3); ctx.lineTo((ex + 0.18) * s, -s * 0.8); ctx.fill(); ctx.stroke();
-    });
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    drawFace(k, s, t, -0.3, 0.05);
-  },
-
-  lion(s, t, c, k) {
-    const body = quadBody(s, t, k, c, {});
-    // Tuft on the tail
-    ctx.fillStyle = '#9c5424';
-    ctx.beginPath(); ctx.arc((body.bodyX - body.rx - 0.3) * s, (body.bodyY + 0.45) * s, s * 0.16, 0, Math.PI * 2); ctx.fill();
-    // Fluffy little mane
-    ctx.fillStyle = '#b8642a';
-    for (let i = 0; i < 12; i++) {
-      const a = i / 12 * Math.PI * 2;
-      ctx.beginPath(); ctx.arc(Math.cos(a) * s * 0.95, Math.sin(a) * s * 0.95, s * 0.34, 0, Math.PI * 2); ctx.fill();
-    }
-    // Round ears, head and muzzle
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
-    ctx.lineWidth = 1.5;
-    [-0.6, 0.6].forEach(ex => { ctx.beginPath(); ctx.arc(ex * s, -s * 0.8, s * 0.26, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); });
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = rgb(mix(c, WHITE, 0.5));
-    ctx.beginPath(); ctx.ellipse(0, s * 0.38, s * 0.45, s * 0.3, 0, 0, Math.PI * 2); ctx.fill();
-    drawFace(k, s, t, -0.3, 0);
-    ctx.fillStyle = '#6b3a20';
-    ctx.beginPath(); ctx.moveTo(-s * 0.1, s * 0.12); ctx.lineTo(s * 0.1, s * 0.12); ctx.lineTo(0, s * 0.24); ctx.fill();
-  },
-
-  hippo(s, t, c, k) {
-    quadBody(s, t, k, c, { rx: 1.15, ry: 0.8, legW: 0.32, legLen: 0.42, tail: false });
-    const dark = mix(c, BLACK, 0.3);
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = 1.5;
-    [-0.5, 0.45].forEach(ex => { ctx.beginPath(); ctx.ellipse(ex * s, -s * 0.85, s * 0.16, s * 0.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); });
-    ctx.beginPath(); ctx.ellipse(0, 0, s * 1.1, s * 0.95, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Wide snout with nostrils
-    ctx.fillStyle = rgb(mix(c, WHITE, 0.25));
-    ctx.beginPath(); ctx.ellipse(s * 0.1, s * 0.48, s * 0.95, s * 0.48, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = rgb(dark);
-    // Nostrils on top of the snout, mouth just below them, eyes up on the head
-    [-0.2, 0.25].forEach(nx => { ctx.beginPath(); ctx.ellipse(nx * s, s * 0.2, s * 0.1, s * 0.065, 0, 0, Math.PI * 2); ctx.fill(); });
-    drawFace(k, s, t, -0.3, -0.3, 0.45);
-  },
-
-  rhino(s, t, c, k) {
-    quadBody(s, t, k, c, { rx: 1.1, ry: 0.7, legW: 0.3, legLen: 0.48 });
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
-    ctx.lineWidth = 1.5;
-    [-0.35, 0.15].forEach(ex => {
-      ctx.beginPath(); ctx.moveTo((ex - 0.15) * s, -s * 0.85); ctx.lineTo(ex * s, -s * 1.25); ctx.lineTo((ex + 0.15) * s, -s * 0.85); ctx.fill(); ctx.stroke();
-    });
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Horns on the nose
-    ctx.fillStyle = '#f3ead7';
-    ctx.strokeStyle = '#c9bc9c';
-    ctx.beginPath(); ctx.moveTo(s * 0.7, -s * 0.2); ctx.quadraticCurveTo(s * 1.05, -s * 0.5, s * 1.3, -s * 0.85); ctx.quadraticCurveTo(s * 1.2, -s * 0.2, s * 1.0, s * 0.15); ctx.closePath(); ctx.fill(); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(s * 0.55, -s * 0.6); ctx.lineTo(s * 0.72, -s * 0.95); ctx.lineTo(s * 0.8, -s * 0.5); ctx.closePath(); ctx.fill(); ctx.stroke();
-    drawFace(k, s, t, -0.4, 0.1);
-  },
-
-  cheetah(s, t, c, k) {
-    const body = quadBody(s, t, k, c, { rx: 1.05, ry: 0.55, legW: 0.2, legLen: 0.62 });
-    const spot = '#3a2a1a';
-    // Spots on the body
-    ctx.save();
-    ctx.beginPath(); ctx.ellipse(body.bodyX * s, body.bodyY * s, body.rx * s, body.ry * s, 0, 0, Math.PI * 2); ctx.clip();
-    ctx.fillStyle = spot;
-    for (let i = 0; i < 14; i++) {
-      const x = body.bodyX + ((i * 0.37) % 1.9) - 0.95, y = body.bodyY + ((i * 0.53) % 1.0) - 0.5;
-      ctx.beginPath(); ctx.arc(x * s, y * s, s * 0.08, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.restore();
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = rgb(mix(c, BLACK, 0.3));
-    ctx.lineWidth = 1.5;
-    [-0.55, 0.55].forEach(ex => { ctx.beginPath(); ctx.arc(ex * s, -s * 0.82, s * 0.22, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); });
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = spot;
-    [[-0.5, -0.65], [0.05, -0.8], [0.55, -0.6], [-0.75, -0.25], [0.8, -0.2]].forEach(([x, y]) => {
-      ctx.beginPath(); ctx.arc(x * s, y * s, s * 0.07, 0, Math.PI * 2); ctx.fill();
-    });
-    drawFace(k, s, t, -0.3, 0);
-    // Tear marks from the eyes
-    ctx.strokeStyle = spot;
-    ctx.lineWidth = Math.max(1.2, s * 0.07);
-    [-1, 1].forEach(side => {
-      ctx.beginPath(); ctx.moveTo(side * s * 0.25, s * 0.12); ctx.lineTo(side * s * 0.33, s * 0.42); ctx.stroke();
-    });
-  },
-
-  giraffe(s, t, c, k) {
-    // Drawn standing tall: the head sits well above the feet
-    ctx.translate(0, -s * 2.2);
-    const dark = mix(c, BLACK, 0.3), spot = 'rgb(190,120,60)';
-    const step = Math.abs(k.vx) > 5 ? Math.sin(t * 8 + k.phase) * 0.2 : 0;
-    const bx = -1.1, by = 1.9;
-    // Long legs
-    [[-0.7, step], [0.5, -step], [-0.4, -step], [0.75, step]].forEach(([f, sw], i) => {
-      ctx.save();
-      ctx.translate((bx + f) * s, (by + 0.3) * s);
-      ctx.rotate(sw);
-      ctx.fillStyle = rgb(i < 2 ? mix(c, BLACK, 0.12) : c);
-      ctx.strokeStyle = rgb(dark);
-      ctx.lineWidth = 1.2;
-      ctx.beginPath(); ctx.roundRect(-s * 0.1, 0, s * 0.2, s * 1.1, s * 0.08); ctx.fill(); ctx.stroke();
-      ctx.restore();
-    });
-    // Tail
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = Math.max(1.5, s * 0.08);
-    ctx.beginPath(); ctx.moveTo((bx - 0.9) * s, by * s - s * 0.2); ctx.lineTo((bx - 1.15) * s, (by + 0.5) * s); ctx.stroke();
-    // Body
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(bx * s, by * s, s * 0.95, s * 0.6, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    // Long neck
-    ctx.lineCap = 'round';
-    [[dark, s * 0.75], [c, s * 0.62]].forEach(([col, w]) => {
-      ctx.strokeStyle = rgb(col);
-      ctx.lineWidth = w;
-      ctx.beginPath(); ctx.moveTo(-s * 0.1, s * 0.5); ctx.lineTo((bx + 0.55) * s, (by - 0.3) * s); ctx.stroke();
-    });
-    // Spots
-    ctx.fillStyle = spot;
-    [[bx - 0.4, by - 0.1, 0.16], [bx + 0.2, by + 0.15, 0.14], [bx - 0.05, by - 0.3, 0.12], [bx + 0.5, by - 0.15, 0.1],
-     [-0.3, 0.95, 0.11], [-0.55, 1.35, 0.1]].forEach(([x, y, r]) => {
-      ctx.beginPath(); ctx.arc(x * s, y * s, r * s, 0, Math.PI * 2); ctx.fill();
-    });
-    // Ossicones and ears
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = Math.max(1.5, s * 0.1);
-    [-0.3, 0.3].forEach(x => {
-      ctx.beginPath(); ctx.moveTo(x * s, -s * 0.85); ctx.lineTo(x * s, -s * 1.25); ctx.stroke();
-      ctx.fillStyle = 'rgb(150,95,50)';
-      ctx.beginPath(); ctx.arc(x * s, -s * 1.28, s * 0.11, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = 1.5;
-    [[-0.9, -0.5, 0.5], [0.9, -0.5, -0.5]].forEach(([x, y, rot]) => {
-      ctx.beginPath(); ctx.ellipse(x * s, y * s, s * 0.28, s * 0.12, rot, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    });
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = rgb(mix(c, WHITE, 0.35));
-    ctx.beginPath(); ctx.ellipse(0, s * 0.45, s * 0.5, s * 0.3, 0, 0, Math.PI * 2); ctx.fill();
-    drawFace(k, s, t, -0.3, -0.05);
-  },
-
-  meerkat(s, t, c, k) {
-    // Standing up tall on the ground
-    ctx.translate(0, -s * 1.0);
-    const dark = mix(c, BLACK, 0.3);
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = Math.max(2, s * 0.14);
-    ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(-s * 0.4, s * 2.0); ctx.quadraticCurveTo(-s * 0.9, s * 2.3, -s * 1.1, s * 2.0); ctx.stroke();
-    ctx.fillStyle = rgb(c);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(0, s * 1.35, s * 0.62, s * 0.95, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = rgb(mix(c, WHITE, 0.45));
-    ctx.beginPath(); ctx.ellipse(s * 0.05, s * 1.45, s * 0.38, s * 0.7, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = rgb(c);
-    [[-0.28, 0.5], [0.28, -0.5]].forEach(([x, rot]) => {
-      ctx.beginPath(); ctx.ellipse(x * s, s * 0.95, s * 0.12, s * 0.28, rot, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    });
-    [-0.25, 0.25].forEach(x => { ctx.beginPath(); ctx.ellipse(x * s, s * 2.25, s * 0.2, s * 0.1, 0, 0, Math.PI * 2); ctx.fill(); });
-    // Head with dark eye patches
-    const hs = s * 0.85;
-    [-0.72, 0.72].forEach(x => { ctx.beginPath(); ctx.arc(x * hs, -hs * 0.25, hs * 0.18, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); });
-    ctx.beginPath(); ctx.arc(0, 0, hs, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(90,60,35,0.45)';
-    [-0.25, 0.25].forEach(x => { ctx.beginPath(); ctx.ellipse(x * hs, -hs * 0.12, hs * 0.36, hs * 0.32, 0, 0, Math.PI * 2); ctx.fill(); });
-    drawFace(k, hs, t, -0.3, 0.05);
-    ctx.fillStyle = '#3a2a1a';
-    ctx.beginPath(); ctx.arc(0, hs * 0.12, hs * 0.07, 0, Math.PI * 2); ctx.fill();
-  },
-
-  parrot(s, t, c, k) {
-    const flap = Math.sin(t * 14 + k.phase);
-    const dark = mix(c, BLACK, 0.3);
-    // Long layered tail feathers sweeping back and down
-    ['#3aa0e0', '#ffd23f', rgb(mix(c, BLACK, 0.1))].forEach((col, i) => {
-      ctx.fillStyle = col;
-      ctx.beginPath();
-      ctx.moveTo(-s * 0.6, s * (0.05 + i * 0.1));
-      ctx.quadraticCurveTo(-s * 1.4, s * (0.15 + i * 0.15), -s * (2.1 - i * 0.15), s * (0.95 - i * 0.12));
-      ctx.quadraticCurveTo(-s * 1.3, s * (0.5 + i * 0.1), -s * 0.5, s * (0.45 + i * 0.05));
-      ctx.fill();
-    });
-    // Little crest
-    ctx.fillStyle = rgb(c);
-    [[-0.25, -0.95, -0.5], [0.0, -1.05, -0.2]].forEach(([x, y, rot]) => {
-      ctx.beginPath(); ctx.ellipse(x * s, y * s, s * 0.12, s * 0.28, rot, 0, Math.PI * 2); ctx.fill();
-    });
-    // Round body
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    drawFace(k, s, t, -0.4, -0.05);
-    // Colorful wing on top of the body, flapping
-    ctx.save();
-    ctx.translate(-s * 0.45, s * 0.35);
-    ctx.rotate(-0.25 + flap * 0.45);
-    ctx.fillStyle = rgb(mix(c, BLACK, 0.12));
-    ctx.strokeStyle = rgb(dark);
-    ctx.beginPath(); ctx.ellipse(-s * 0.3, 0, s * 0.6, s * 0.33, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = '#ffd23f';
-    ctx.beginPath(); ctx.ellipse(-s * 0.55, s * 0.02, s * 0.3, s * 0.17, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#3aa0e0';
-    ctx.beginPath(); ctx.ellipse(-s * 0.72, s * 0.04, s * 0.16, s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    // Curved golden beak, attached to the face
-    ctx.fillStyle = '#ffcc4d';
-    ctx.strokeStyle = '#c9952a';
-    ctx.beginPath();
-    ctx.moveTo(s * 0.6, -s * 0.35);
-    ctx.quadraticCurveTo(s * 1.35, -s * 0.35, s * 1.15, s * 0.35);
-    ctx.quadraticCurveTo(s * 0.95, s * 0.05, s * 0.62, s * 0.2);
-    ctx.closePath();
-    ctx.fill(); ctx.stroke();
-  },
-
-  chameleon(s, t, c, k) {
-    const dark = mix(c, BLACK, 0.3);
-    const step = Math.abs(k.vx) > 2 ? Math.sin(t * 8 + k.phase) * 0.25 : 0;
-    // Curly tail
-    ctx.strokeStyle = rgb(c);
-    ctx.lineWidth = s * 0.3;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(-s * 1.6, s * 0.45);
-    ctx.bezierCurveTo(-s * 2.5, s * 0.2, -s * 2.5, s * 1.1, -s * 2.0, s * 1.05);
-    ctx.quadraticCurveTo(-s * 1.75, s * 0.95, -s * 1.85, s * 0.75);
-    ctx.stroke();
-    // Gripping legs
-    [[-1.5, step], [-0.4, -step], [-1.2, -step], [-0.1, step]].forEach(([x, sw], i) => {
-      ctx.save();
-      ctx.translate(x * s, s * 0.65);
-      ctx.rotate(sw);
-      ctx.strokeStyle = rgb(i < 2 ? dark : c);
-      ctx.lineWidth = s * 0.2;
-      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(s * 0.1, s * 0.5); ctx.stroke();
-      ctx.restore();
-    });
-    // Body with light spots
-    ctx.fillStyle = rgb(c);
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.ellipse(-s * 0.9, s * 0.35, s * 0.95, s * 0.55, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.45)';
-    [[-1.3, 0.25], [-0.9, 0.5], [-0.55, 0.2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x * s, y * s, s * 0.1, 0, Math.PI * 2); ctx.fill(); });
-    // Crest on the head
-    ctx.fillStyle = rgb(mix(c, BLACK, 0.15));
-    ctx.beginPath(); ctx.moveTo(-s * 0.75, -s * 0.6); ctx.quadraticCurveTo(-s * 0.2, -s * 1.5, s * 0.45, -s * 0.8); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = rgb(c);
-    ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    drawFace(k, s, t, -0.3, 0.05);
-  },
 };
 
-// Shared four-legged body for safari animals: tail, stepping legs and a body behind the head.
-// Returns the body's position and size (in body-size units) so animals can add stripes or spots.
-function quadBody(s, t, k, col, { bodyX = -1.0, bodyY = 0.5, rx = 1.0, ry = 0.62, legLen = 0.55, legW = 0.22, tail = true } = {}) {
-  const dark = mix(col, BLACK, 0.3);
-  const step = Math.abs(k.vx) > 5 ? Math.sin(t * 10 + k.phase) * 0.25 : 0;
-  if (tail) {
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = Math.max(1.5, s * 0.1);
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo((bodyX - rx * 0.95) * s, (bodyY - 0.1) * s);
-    ctx.quadraticCurveTo((bodyX - rx - 0.35) * s, (bodyY + 0.1) * s, (bodyX - rx - 0.3) * s, (bodyY + 0.45) * s);
-    ctx.stroke();
-  }
-  // Far legs first (a shade darker), near legs after
-  [[-0.65, step], [0.55, -step], [-0.35, -step], [0.8, step]].forEach(([f, sw], i) => {
-    ctx.save();
-    ctx.translate((bodyX + f * rx) * s, (bodyY + ry * 0.55) * s);
-    ctx.rotate(sw);
-    ctx.fillStyle = rgb(i < 2 ? mix(col, BLACK, 0.12) : col);
-    ctx.strokeStyle = rgb(dark);
-    ctx.lineWidth = 1.2;
-    ctx.beginPath(); ctx.roundRect(-legW * s / 2, 0, legW * s, legLen * s, legW * s / 2); ctx.fill(); ctx.stroke();
-    ctx.restore();
-  });
-  ctx.fillStyle = rgb(col);
-  ctx.strokeStyle = rgb(dark);
-  ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.ellipse(bodyX * s, bodyY * s, rx * s, ry * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-  return { bodyX, bodyY, rx, ry };
-}
 
 // Soft five-point star (control points pull past the tips so the points stay rounded)
 function starShape(r1, r2, n) {
@@ -3766,121 +3405,6 @@ function drawCenter(s, col) {
   ctx.stroke();
 }
 
-// ---- Picture critters: Microsoft Fluent Emoji (Flat), MIT License, see assets/fluent/LICENSE ----
-// legTop: where the legs start, as a fraction of the picture's height; they swing from there when walking.
-// legsTogether: swing the legs as one piece (for thin or one-legged poses that splitting would cut apart)
-const SPRITES = {
-  elephant:     { legTop: 0.68 },
-  giraffe:      { legTop: 0.58 },
-  zebra:        { legTop: 0.6 },
-  hippopotamus: { legTop: 0.72 },
-  rhinoceros:   { legTop: 0.7 },
-  leopard:      { legTop: 0.62 },
-  monkey:       { legTop: 0.8 },
-  parrot:       { legTop: null },
-  flamingo:     { legTop: 0.55, legsTogether: true },
-  lizard:       { legTop: 0.6 },
-};
-const SPRITE_PX = 256;
-const SPRITE_SCALE = 3.5;          // picture size relative to a critter's body size
-
-Object.entries(SPRITES).forEach(([name, sprite]) => {
-  const img = new Image();
-  img.onload = () => {
-    // Drawn once at a large size so the cropped legs stay sharp when scaled
-    sprite.canvas = document.createElement('canvas');
-    sprite.canvas.width = sprite.canvas.height = SPRITE_PX;
-    sprite.canvas.getContext('2d').drawImage(img, 0, 0, SPRITE_PX, SPRITE_PX);
-    if (sprite.legTop && !sprite.legsTogether) sprite.splitX = findLegGap(sprite.canvas);
-    renderJar();
-  };
-  img.src = `assets/fluent/${name}.svg`;
-});
-
-// Finds an empty column between the front and back feet (nearest the middle), so each pair swings
-// whole instead of a leg being cut in two. Returns null when the feet touch.
-function findLegGap(cv) {
-  const P = cv.width, y0 = Math.round(P * 0.82), y1 = Math.round(P * 0.95), rows = y1 - y0;
-  const data = cv.getContext('2d').getImageData(0, y0, P, rows).data;
-  const empty = [];
-  for (let x = 0; x < P; x++) {
-    let solid = false;
-    for (let y = 0; y < rows && !solid; y++) solid = data[(y * P + x) * 4 + 3] > 30;
-    empty.push(!solid);
-  }
-  let best = null;
-  for (let x = 0; x < P;) {
-    if (!empty[x]) { x++; continue; }
-    let end = x;
-    while (end < P && empty[end]) end++;
-    // Only gaps with feet on both sides count
-    if (x > 0 && end < P) {
-      const mid = (x + end) / 2 / P;
-      if (best === null || Math.abs(mid - 0.5) < Math.abs(best - 0.5)) best = mid;
-    }
-    x = end;
-  }
-  return best;
-}
-
-// Draws a picture critter walking: bob, sway, and front/back legs swinging opposite ways.
-// Falls back to the hand-drawn critter if the picture hasn't loaded.
-function spriteDrawer(name, fallback, { flying = false, rainbowHue = false } = {}) {
-  return (s, t, c, k) => {
-    const sprite = SPRITES[name];
-    if (!sprite.canvas) return DRAW[fallback](s, t, c, k);
-    const img = sprite.canvas, P = SPRITE_PX;
-    const size = s * SPRITE_SCALE;
-    const moving = flying || Math.abs(k.vx) > 5;
-    const step = t * (k.speed || 60) / 12 + k.phase;
-    const bob = moving ? Math.abs(Math.sin(step)) * size * (flying ? 0.08 : 0.05) : 0;
-    const top = sprite.legTop;
-    ctx.save();
-    if (rainbowHue) ctx.filter = `hue-rotate(${(t * 90) % 360}deg)`;
-    // Feet on the same ground line as the hand-drawn critters
-    ctx.translate(0, s * 1.35 + size * 0.06 - bob);
-    if (moving && !flying) ctx.rotate(Math.sin(step) * 0.035);
-    ctx.scale(-1, 1);   // Fluent animals face left; critters face right before flipping
-    if (flying) {
-      // The picture is a perched bird, so add wings that flap from the shoulder
-      const flap = Math.sin(t * 16 + k.phase);
-      const wing = (angle, colors) => {
-        ctx.save();
-        // In the picture's own coordinates the tail is toward +x, so the wing reaches back that way
-        ctx.translate(size * 0.05, -size * 0.52);
-        ctx.rotate(angle);
-        colors.forEach((col, i) => {
-          ctx.fillStyle = col;
-          ctx.beginPath(); ctx.ellipse(size * (0.18 + i * 0.06), 0, size * (0.21 - i * 0.06), size * 0.08, 0, 0, Math.PI * 2); ctx.fill();
-        });
-        ctx.restore();
-      };
-      wing(-0.6 + flap * 0.8, ['#c21f4b']);
-      ctx.drawImage(img, -size / 2, -size, size, size);
-      wing(-0.35 + flap * 0.8, ['#f92f60', '#ffb02e', '#00a6ed']);
-    } else if (!top || !moving) {
-      ctx.drawImage(img, -size / 2, -size, size, size);
-    } else {
-      const swing = Math.sin(step) * 0.35;
-      // Front and back halves swing opposite ways, or the whole lower part sways together
-      const split = sprite.splitX;
-      const pieces = split == null ? [[0, 1, swing * 0.6]] : [[0, split, swing], [split, 1 - split, -swing]];
-      pieces.forEach(([fx, fw, skew]) => {
-        ctx.save();
-        ctx.translate(0, -size * (1 - top));
-        ctx.transform(1, 0, skew, 1, 0, 0);
-        ctx.drawImage(img, P * fx, P * top, P * fw, P * (1 - top), -size / 2 + size * fx, 0, size * fw, size * (1 - top));
-        ctx.restore();
-      });
-      // Body drawn over the tops of the legs so no seam shows
-      const body = top + 0.03;
-      ctx.drawImage(img, 0, 0, P, P * body, -size / 2, -size, size, size * body);
-    }
-    ctx.restore();
-    drawMoodBubble(k, 0, s * 1.35 - size * 0.95);
-  };
-}
-
 // Pictures can't change their faces, so a little bubble shows how they feel
 function drawMoodBubble(k, x, y) {
   const icon = k.mood === 'scared' ? '😱' : k.mood === 'sad' ? '😟' : '';
@@ -3895,17 +3419,489 @@ function drawMoodBubble(k, x, y) {
   ctx.restore();
 }
 
+
+// ---- Realistic safari animals: flat style, side view, jointed legs that really walk ----
+
+// Walk phase (radians) tied to ground speed so feet don't slide; 0 when standing.
+// Returns [phase, amount], where amount eases the stride in and out.
+function gaitPhase(k, t, s, strideLen) {
+  k.gaitAmt = k.gaitAmt || 0;
+  const moving = Math.abs(k.vx) > 5;
+  k.gaitAmt += ((moving ? 1 : 0) - k.gaitAmt) * 0.15;
+  k.gaitPhase = (k.gaitPhase || 0) + (moving ? Math.abs(k.vx) / 60 / (strideLen * s) * Math.PI * 2 : 0);
+  return [k.gaitPhase, k.gaitAmt];
+}
+
+// One leg: thigh from the hip, then the lower leg bent at the knee/hock, then a hoof.
+// Angles are measured from straight down; bend > 0 folds the lower leg backward.
+// stripe (optional) paints dashed bands over the leg, for zebras.
+function jointedLeg(hipX, hipY, upper, lower, w1, w2, thigh, bend, color, hoof, stripe) {
+  const kx = hipX + Math.sin(thigh) * upper, ky = hipY + Math.cos(thigh) * upper;
+  const a2 = thigh - bend;
+  const fx = kx + Math.sin(a2) * lower, fy = ky + Math.cos(a2) * lower;
+  ctx.lineCap = 'round';
+  [[color, 1, []], ...(stripe ? [[stripe, 0.92, [w2 * 0.45, w2 * 0.5]]] : [])].forEach(([col, k, dash]) => {
+    ctx.setLineDash(dash);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = w1 * k;
+    ctx.beginPath(); ctx.moveTo(hipX, hipY); ctx.lineTo(kx, ky); ctx.stroke();
+    ctx.lineWidth = w2 * k;
+    ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  ctx.fillStyle = hoof;
+  ctx.beginPath(); ctx.ellipse(fx + w2 * 0.15, fy, w2 * 0.6, w2 * 0.38, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+// Patchwork spots inside whatever clip is active, from a fixed pattern so they don't shimmer
+function patchPattern(x0, y0, x1, y1, cell, color) {
+  ctx.fillStyle = color;
+  let n = 0;
+  for (let y = y0; y < y1; y += cell) {
+    for (let x = x0 + ((n * 0.37) % 1) * cell * 0.5; x < x1; x += cell, n++) {
+      const j = Math.sin(n * 12.9898) * 43758.5453;
+      const jx = (j - Math.floor(j) - 0.5) * cell * 0.25, r = cell * (0.36 + ((n * 7) % 5) * 0.02);
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2 + n;
+        const rr = r * (0.85 + ((n + i) % 3) * 0.08);
+        ctx.lineTo(x + jx + Math.cos(a) * rr, y + Math.sin(a) * rr);
+      }
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+// Shared walking skeleton for four-legged animals. Inside o.body the ground is at y = 0 and the
+// animal faces right. Gaits: 'pace' moves both legs on one side together (giraffes);
+// 'walk' moves diagonal pairs together (most animals). Sizes in o are in body-size units.
+function walkQuad(s, t, k, o) {
+  const [ph, amt] = gaitPhase(k, t, s, o.strideLen);
+  ctx.save();
+  ctx.translate(0, s * 1.35 - Math.abs(Math.sin(ph)) * s * o.bob * amt);   // feet on the ground line
+  const lower = (o.hip - o.upper - o.w2 * 0.35) * s;
+  const legs = [
+    { x: o.backX + 0.1, front: false, far: true },
+    { x: o.frontX + 0.1, front: true, far: true },
+    { x: o.backX, front: false, far: false },
+    { x: o.frontX, front: true, far: false },
+  ];
+  const drawLeg = leg => {
+    const p = ph + (o.gait === 'pace' ? (leg.far ? Math.PI : 0) : (leg.far !== leg.front ? Math.PI : 0));
+    const thigh = Math.sin(p) * o.stride * amt;
+    // Knees fold forward on front legs and backward on back legs while the leg swings
+    const bend = (leg.front ? -1 : 1) * o.bend * Math.max(0, Math.cos(p)) * amt;
+    jointedLeg(leg.x * s, -o.hip * s, o.upper * s, lower, o.w1 * s, o.w2 * s, thigh, bend,
+      leg.far ? o.farColor : o.color, o.hoof, o.stripe);
+  };
+  legs.filter(l => l.far).forEach(drawLeg);
+  o.body(ph, amt);
+  legs.filter(l => !l.far).forEach(drawLeg);
+  ctx.restore();
+  drawMoodBubble(k, o.head[0] * s, (o.head[1] - 0.45) * s + s * 1.35);
+}
+
+// Fills the current path, then paints spots/stripes clipped inside it
+function fillWithPattern(path, color, pattern) {
+  ctx.fillStyle = color;
+  path(); ctx.fill();
+  ctx.save();
+  path(); ctx.clip();
+  pattern();
+  ctx.restore();
+}
+
+function swishTail(s, t, k, x0, y0, len, color, tuft) {
+  const swing = Math.sin(t * 2.2 + k.phase) * 0.15;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = s * 0.05;
+  ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(x0 * s, y0 * s);
+  ctx.quadraticCurveTo((x0 - 0.15) * s, (y0 + len * 0.5) * s, (x0 - 0.13 - swing) * s, (y0 + len) * s); ctx.stroke();
+  if (tuft) {
+    ctx.fillStyle = tuft;
+    ctx.beginPath(); ctx.ellipse((x0 - 0.13 - swing) * s, (y0 + len + 0.06) * s, s * 0.06, s * 0.12, swing, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+function realEye(x, y, r) {
+  ctx.fillStyle = 'rgb(35,25,20)';
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.beginPath(); ctx.arc(x + r * 0.3, y - r * 0.3, r * 0.35, 0, Math.PI * 2); ctx.fill();
+}
+
 Object.assign(DRAW, {
-  picElephant:  spriteDrawer('elephant', 'elephant'),
-  picGiraffe:   spriteDrawer('giraffe', 'giraffe'),
-  picZebra:     spriteDrawer('zebra', 'zebra'),
-  picMonkey:    spriteDrawer('monkey', 'meerkat'),
-  picParrot:    spriteDrawer('parrot', 'parrot', { flying: true }),
-  picFlamingo:  spriteDrawer('flamingo', 'parrot'),
-  picHippo:     spriteDrawer('hippopotamus', 'hippo'),
-  picRhino:     spriteDrawer('rhinoceros', 'rhino'),
-  picLeopard:   spriteDrawer('leopard', 'cheetah'),
-  picChameleon: spriteDrawer('lizard', 'chameleon', { rainbowHue: true }),
+  realGiraffe(s, t, c, k) {
+    const base = 'rgb(242,194,90)', spot = 'rgb(176,104,44)';
+    walkQuad(s, t, k, {
+      gait: 'pace', strideLen: 1.2, bob: 0.03, stride: 0.26, bend: 0.7,
+      backX: -0.72, frontX: 0.3, hip: 1.45, upper: 0.74, w1: 0.16, w2: 0.1,
+      color: base, farColor: 'rgb(214,166,72)', hoof: 'rgb(70,50,35)', head: [1.05, -3.2],
+      body: ph => {
+        swishTail(s, t, k, -0.85, -1.7, 0.72, spot, 'rgb(60,40,28)');
+        const sway = Math.sin(ph * 2) * 0.03;
+        const hx = s * (1.05 + sway), hy = -s * 3.2;
+        fillWithPattern(() => {
+          ctx.beginPath();
+          ctx.ellipse(-s * 0.15, -s * 1.62, s * 0.78, s * 0.38, -0.12, 0, Math.PI * 2);
+          ctx.moveTo(s * 0.2, -s * 1.85);
+          ctx.quadraticCurveTo(s * 0.55, -s * 2.4, hx - s * 0.12, hy + s * 0.02);
+          ctx.lineTo(hx + s * 0.08, hy + s * 0.12);
+          ctx.quadraticCurveTo(s * 0.85, -s * 2.3, s * 0.62, -s * 1.5);
+          ctx.closePath();
+        }, base, () => {
+          patchPattern(-s * 1.0, -s * 3.3, s * 1.3, -s * 1.2, s * 0.24, spot);
+          ctx.fillStyle = 'rgb(250,226,170)';
+          ctx.beginPath(); ctx.ellipse(-s * 0.15, -s * 1.3, s * 0.6, s * 0.12, -0.1, 0, Math.PI * 2); ctx.fill();
+        });
+        // Mane along the back of the neck
+        ctx.strokeStyle = 'rgb(120,72,32)';
+        ctx.lineWidth = s * 0.07;
+        ctx.beginPath(); ctx.moveTo(s * 0.18, -s * 1.95); ctx.quadraticCurveTo(s * 0.52, -s * 2.5, hx - s * 0.16, hy + s * 0.05); ctx.stroke();
+        // Head with ossicones, ear, muzzle and eye
+        ctx.save();
+        ctx.translate(hx, hy);
+        ctx.rotate(0.45);
+        ctx.fillStyle = 'rgb(110,70,40)';
+        [-0.06, 0.06].forEach(dx => {
+          ctx.fillRect(s * (dx - 0.025), -s * 0.3, s * 0.05, s * 0.18);
+          ctx.beginPath(); ctx.arc(s * dx, -s * 0.3, s * 0.045, 0, Math.PI * 2); ctx.fill();
+        });
+        ctx.fillStyle = base;
+        ctx.beginPath(); ctx.ellipse(-s * 0.15, -s * 0.12, s * 0.12, s * 0.05, -0.7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(s * 0.1, 0, s * 0.3, s * 0.13, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgb(214,160,92)';
+        ctx.beginPath(); ctx.ellipse(s * 0.33, s * 0.02, s * 0.1, s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+        realEye(-s * 0.02, -s * 0.04, s * 0.035);
+        ctx.restore();
+      },
+    });
+  },
+
+  realElephant(s, t, c, k) {
+    const skin = 'rgb(152,160,178)', dark = 'rgb(124,131,148)';
+    walkQuad(s, t, k, {
+      gait: 'walk', strideLen: 1.0, bob: 0.02, stride: 0.18, bend: 0.35,
+      backX: -0.62, frontX: 0.35, hip: 0.85, upper: 0.42, w1: 0.32, w2: 0.28,
+      color: skin, farColor: dark, hoof: 'rgb(220,214,200)', head: [0.8, -1.8],
+      body: ph => {
+        swishTail(s, t, k, -0.98, -1.25, 0.5, dark, 'rgb(70,70,80)');
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.ellipse(-s * 0.15, -s * 1.15, s * 0.88, s * 0.56, 0, 0, Math.PI * 2); ctx.fill();
+        // Head, big ear, tusk and trunk swinging gently with each step
+        ctx.beginPath(); ctx.arc(s * 0.78, -s * 1.35, s * 0.42, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = dark;
+        ctx.beginPath(); ctx.ellipse(s * 0.5, -s * 1.3, s * 0.34, s * 0.46, 0.15, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = s * 0.03;
+        ctx.beginPath(); ctx.ellipse(s * 0.5, -s * 1.3, s * 0.26, s * 0.38, 0.15, -1.2, 1.6); ctx.stroke();
+        const swing = Math.sin(ph) * 0.08;
+        ctx.lineCap = 'round';
+        [[dark, 0.26, 0.14], [skin, 0.2, 0.1]].forEach(([col, w0, w1]) => {
+          ctx.strokeStyle = col;
+          ctx.lineWidth = w0 * s;
+          ctx.beginPath(); ctx.moveTo(s * 1.05, -s * 1.3); ctx.quadraticCurveTo(s * 1.25, -s * 0.95, s * (1.2 + swing), -s * 0.7); ctx.stroke();
+          ctx.lineWidth = w1 * s;
+          ctx.beginPath(); ctx.moveTo(s * (1.2 + swing), -s * 0.7); ctx.quadraticCurveTo(s * (1.18 + swing), -s * 0.42, s * (1.3 + swing), -s * 0.38); ctx.stroke();
+        });
+        ctx.strokeStyle = 'rgb(245,240,225)';
+        ctx.lineWidth = s * 0.07;
+        ctx.beginPath(); ctx.moveTo(s * 0.98, -s * 1.08); ctx.quadraticCurveTo(s * 1.2, -s * 0.98, s * 1.3, -s * 1.12); ctx.stroke();
+        realEye(s * 0.88, -s * 1.48, s * 0.045);
+      },
+    });
+  },
+
+  realZebra(s, t, c, k) {
+    const white = 'rgb(246,246,244)', black = 'rgb(30,30,34)';
+    walkQuad(s, t, k, {
+      gait: 'walk', strideLen: 1.1, bob: 0.03, stride: 0.3, bend: 0.75,
+      backX: -0.55, frontX: 0.32, hip: 0.95, upper: 0.45, w1: 0.15, w2: 0.09,
+      color: white, farColor: 'rgb(222,222,220)', hoof: black, stripe: black, head: [0.95, -1.7],
+      body: ph => {
+        swishTail(s, t, k, -0.75, -1.22, 0.5, white, black);
+        const nod = Math.sin(ph * 2) * 0.04;
+        const hx = s * 0.95, hy = -s * (1.7 + nod);
+        fillWithPattern(() => {
+          ctx.beginPath();
+          ctx.ellipse(-s * 0.1, -s * 1.15, s * 0.68, s * 0.3, 0, 0, Math.PI * 2);
+          ctx.moveTo(s * 0.28, -s * 1.35);
+          ctx.quadraticCurveTo(s * 0.55, -s * 1.7, hx - s * 0.1, hy - s * 0.05);
+          ctx.lineTo(hx + s * 0.05, hy + s * 0.1);
+          ctx.quadraticCurveTo(s * 0.6, -s * 1.3, s * 0.5, -s * 1.0);
+          ctx.closePath();
+          ctx.ellipse(hx + s * 0.1, hy + s * 0.12, s * 0.3, s * 0.12, 0.95, 0, Math.PI * 2);
+        }, white, () => {
+          ctx.strokeStyle = black;
+          ctx.lineWidth = s * 0.07;
+          for (let i = 0; i < 12; i++) {
+            const x = (-0.75 + i * 0.13) * s;
+            ctx.beginPath(); ctx.moveTo(x, -s * 1.9); ctx.quadraticCurveTo(x + s * 0.12, -s * 1.2, x - s * 0.02, -s * 0.8); ctx.stroke();
+          }
+        });
+        // Black nose and mane, pointed ears
+        ctx.fillStyle = black;
+        ctx.beginPath(); ctx.ellipse(hx + s * 0.27, hy + s * 0.36, s * 0.09, s * 0.08, 0.95, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = black;
+        ctx.lineWidth = s * 0.07;
+        ctx.beginPath(); ctx.moveTo(s * 0.3, -s * 1.4); ctx.quadraticCurveTo(s * 0.5, -s * 1.75, hx - s * 0.12, hy - s * 0.12); ctx.stroke();
+        ctx.fillStyle = white;
+        ctx.beginPath(); ctx.moveTo(hx - s * 0.12, hy - s * 0.08); ctx.lineTo(hx - s * 0.1, hy - s * 0.32); ctx.lineTo(hx + s * 0.02, hy - s * 0.1); ctx.fill();
+        realEye(hx + s * 0.04, hy + s * 0.02, s * 0.035);
+      },
+    });
+  },
+
+  realHippo(s, t, c, k) {
+    const skin = 'rgb(150,132,160)', belly = 'rgb(205,170,180)';
+    walkQuad(s, t, k, {
+      gait: 'walk', strideLen: 0.8, bob: 0.02, stride: 0.2, bend: 0.3,
+      backX: -0.62, frontX: 0.35, hip: 0.5, upper: 0.24, w1: 0.3, w2: 0.28,
+      color: skin, farColor: 'rgb(128,112,138)', hoof: 'rgb(110,95,118)', head: [0.85, -1.15],
+      body: () => {
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.ellipse(-s * 0.1, -s * 0.85, s * 0.88, s * 0.46, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = belly;
+        ctx.beginPath(); ctx.ellipse(-s * 0.1, -s * 0.55, s * 0.66, s * 0.14, 0, 0, Math.PI * 2); ctx.fill();
+        // Big head with a wide pink snout, little ears and nostrils
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.ellipse(s * 0.72, -s * 0.92, s * 0.38, s * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgb(176,150,176)';
+        ctx.beginPath(); ctx.ellipse(s * 1.0, -s * 0.78, s * 0.3, s * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = belly;
+        ctx.beginPath(); ctx.ellipse(s * 1.02, -s * 0.66, s * 0.24, s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = skin;
+        [0.6, 0.74].forEach(x => { ctx.beginPath(); ctx.ellipse(x * s, -s * 1.22, s * 0.06, s * 0.08, 0, 0, Math.PI * 2); ctx.fill(); });
+        ctx.fillStyle = 'rgb(80,64,88)';
+        [1.08, 1.18].forEach(x => { ctx.beginPath(); ctx.ellipse(x * s, -s * 0.98, s * 0.03, s * 0.02, 0, 0, Math.PI * 2); ctx.fill(); });
+        realEye(s * 0.82, -s * 1.08, s * 0.04);
+      },
+    });
+  },
+
+  realRhino(s, t, c, k) {
+    const skin = 'rgb(158,162,168)', dark = 'rgb(134,138,145)';
+    walkQuad(s, t, k, {
+      gait: 'walk', strideLen: 0.9, bob: 0.02, stride: 0.22, bend: 0.4,
+      backX: -0.62, frontX: 0.32, hip: 0.62, upper: 0.3, w1: 0.27, w2: 0.23,
+      color: skin, farColor: dark, hoof: 'rgb(110,112,118)', head: [0.9, -1.3],
+      body: () => {
+        swishTail(s, t, k, -0.9, -1.1, 0.35, dark, 'rgb(70,70,75)');
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.ellipse(-s * 0.1, -s * 1.0, s * 0.82, s * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(s * 0.3, -s * 1.18, s * 0.34, 0, Math.PI * 2); ctx.fill();
+        // Skin folds
+        ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+        ctx.lineWidth = s * 0.03;
+        [[0.0, 0.35], [-0.5, 0.3]].forEach(([x, r]) => { ctx.beginPath(); ctx.arc(x * s, -s * 1.0, r * s, -0.9, 0.9); ctx.stroke(); });
+        // Lowered head with two horns
+        ctx.save();
+        ctx.translate(s * 0.82, -s * 0.9);
+        ctx.rotate(0.28);
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.ellipse(0, 0, s * 0.4, s * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgb(232,226,212)';
+        ctx.beginPath(); ctx.moveTo(s * 0.18, -s * 0.16); ctx.quadraticCurveTo(s * 0.32, -s * 0.48, s * 0.24, -s * 0.62); ctx.quadraticCurveTo(s * 0.4, -s * 0.36, s * 0.38, -s * 0.12); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(-s * 0.02, -s * 0.2); ctx.lineTo(s * 0.04, -s * 0.38); ctx.lineTo(s * 0.12, -s * 0.18); ctx.fill();
+        ctx.restore();
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.moveTo(s * 0.52, -s * 1.08); ctx.lineTo(s * 0.5, -s * 1.32); ctx.lineTo(s * 0.62, -s * 1.12); ctx.fill();
+        realEye(s * 0.78, -s * 0.98, s * 0.035);
+      },
+    });
+  },
+
+  realLeopard(s, t, c, k) {
+    const fur = 'rgb(232,178,82)', ring = 'rgb(70,48,30)', pale = 'rgb(248,226,180)';
+    walkQuad(s, t, k, {
+      gait: 'walk', strideLen: 1.1, bob: 0.025, stride: 0.32, bend: 0.8,
+      backX: -0.55, frontX: 0.38, hip: 0.75, upper: 0.36, w1: 0.15, w2: 0.09,
+      color: fur, farColor: 'rgb(208,156,70)', hoof: fur, head: [0.8, -1.2],
+      body: () => {
+        // Long tail curling up at the end
+        const swing = Math.sin(t * 2 + k.phase) * 0.1;
+        ctx.strokeStyle = fur;
+        ctx.lineWidth = s * 0.09;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-s * 0.75, -s * 0.98); ctx.bezierCurveTo(-s * 1.2, -s * 0.9, -s * 1.3, -s * 0.4, -s * (1.45 + swing), -s * 0.6); ctx.stroke();
+        ctx.strokeStyle = ring;
+        ctx.beginPath(); ctx.moveTo(-s * (1.4 + swing), -s * 0.55); ctx.lineTo(-s * (1.45 + swing), -s * 0.6); ctx.stroke();
+        fillWithPattern(() => {
+          ctx.beginPath();
+          ctx.ellipse(-s * 0.1, -s * 0.95, s * 0.75, s * 0.27, -0.03, 0, Math.PI * 2);
+          ctx.ellipse(s * 0.8, -s * 1.05, s * 0.24, s * 0.22, 0, 0, Math.PI * 2);
+        }, fur, () => {
+          ctx.fillStyle = pale;
+          ctx.beginPath(); ctx.ellipse(-s * 0.1, -s * 0.72, s * 0.6, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+          // Rosettes
+          ctx.strokeStyle = ring;
+          ctx.lineWidth = s * 0.04;
+          for (let i = 0; i < 26; i++) {
+            const x = -0.8 + (i % 9) * 0.19 + (Math.floor(i / 9) % 2) * 0.09, y = -1.15 + Math.floor(i / 9) * 0.16;
+            ctx.beginPath(); ctx.arc(x * s, y * s, s * 0.045, 0.3, Math.PI * 1.8); ctx.stroke();
+          }
+        });
+        // Face: muzzle, round ears, eye
+        ctx.fillStyle = pale;
+        ctx.beginPath(); ctx.ellipse(s * 0.96, -s * 0.98, s * 0.11, s * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = fur;
+        [0.68, 0.84].forEach(x => { ctx.beginPath(); ctx.arc(x * s, -s * 1.26, s * 0.06, 0, Math.PI * 2); ctx.fill(); });
+        ctx.fillStyle = ring;
+        ctx.beginPath(); ctx.arc(s * 1.05, -s * 1.0, s * 0.025, 0, Math.PI * 2); ctx.fill();
+        realEye(s * 0.88, -s * 1.1, s * 0.03);
+      },
+    });
+  },
+
+  // Flamingo: walks on two long legs that bend backward at the ankle
+  realFlamingo(s, t, c, k) {
+    const pink = 'rgb(244,150,180)', deep = 'rgb(226,104,146)';
+    const [ph, amt] = gaitPhase(k, t, s, 0.9);
+    ctx.save();
+    ctx.translate(0, s * 1.35 - Math.abs(Math.sin(ph)) * s * 0.03 * amt);
+    const hipY = -s * 1.25, lower = s * 0.6;
+    const leg = (offset, col) => jointedLeg(s * 0.02, hipY, s * 0.6, lower, s * 0.05, s * 0.045,
+      Math.sin(ph + offset) * 0.35 * amt, 0.9 * Math.max(0, Math.cos(ph + offset)) * amt, col, deep);
+    leg(Math.PI, 'rgb(220,120,150)');
+    // Body with darker wing and black flight feathers
+    ctx.fillStyle = pink;
+    ctx.beginPath(); ctx.ellipse(0, -s * 1.38, s * 0.42, s * 0.24, -0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = deep;
+    ctx.beginPath(); ctx.ellipse(-s * 0.08, -s * 1.4, s * 0.28, s * 0.14, -0.15, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgb(40,30,35)';
+    ctx.beginPath(); ctx.ellipse(-s * 0.36, -s * 1.38, s * 0.1, s * 0.05, -0.2, 0, Math.PI * 2); ctx.fill();
+    // S-shaped neck, head and bent beak
+    const bob = Math.sin(ph) * 0.03 * amt;
+    ctx.strokeStyle = pink;
+    ctx.lineWidth = s * 0.09;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(s * 0.3, -s * 1.45);
+    ctx.bezierCurveTo(s * 0.62, -s * 1.8, s * 0.05, -s * 2.05, s * (0.34 + bob), -s * 2.3); ctx.stroke();
+    ctx.fillStyle = pink;
+    ctx.beginPath(); ctx.arc(s * (0.38 + bob), -s * 2.32, s * 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgb(250,232,220)';
+    ctx.beginPath(); ctx.moveTo(s * (0.45 + bob), -s * 2.36); ctx.quadraticCurveTo(s * (0.62 + bob), -s * 2.34, s * (0.6 + bob), -s * 2.18); ctx.lineTo(s * (0.46 + bob), -s * 2.26); ctx.fill();
+    ctx.fillStyle = 'rgb(35,30,30)';
+    ctx.beginPath(); ctx.moveTo(s * (0.6 + bob), -s * 2.26); ctx.lineTo(s * (0.6 + bob), -s * 2.18); ctx.lineTo(s * (0.53 + bob), -s * 2.22); ctx.fill();
+    realEye(s * (0.38 + bob), -s * 2.35, s * 0.025);
+    leg(0, pink);
+    ctx.restore();
+    drawMoodBubble(k, s * 0.38, -s * 2.75 + s * 1.35);
+  },
+
+  // Monkey: walks on all fours, then sits up when it stops
+  realMonkey(s, t, c, k) {
+    const fur = 'rgb(150,128,100)', face = 'rgb(232,200,176)', dark = 'rgb(110,92,72)';
+    const [ph, amt] = gaitPhase(k, t, s, 0.8);
+    if (amt > 0.4) {
+      walkQuad(s, t, k, {
+        gait: 'walk', strideLen: 0.8, bob: 0.03, stride: 0.3, bend: 0.7,
+        backX: -0.38, frontX: 0.3, hip: 0.55, upper: 0.28, w1: 0.12, w2: 0.09,
+        color: fur, farColor: dark, hoof: dark, head: [0.55, -0.9],
+        body: () => {
+          ctx.strokeStyle = fur;
+          ctx.lineWidth = s * 0.07;
+          ctx.lineCap = 'round';
+          ctx.beginPath(); ctx.moveTo(-s * 0.45, -s * 0.7); ctx.bezierCurveTo(-s * 0.9, -s * 1.1, -s * 0.9, -s * 1.5, -s * 0.6, -s * 1.45); ctx.stroke();
+          ctx.fillStyle = fur;
+          ctx.beginPath(); ctx.ellipse(-s * 0.05, -s * 0.72, s * 0.45, s * 0.22, -0.15, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(s * 0.52, -s * 0.9, s * 0.22, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = face;
+          ctx.beginPath(); ctx.ellipse(s * 0.6, -s * 0.88, s * 0.13, s * 0.14, 0, 0, Math.PI * 2); ctx.fill();
+          realEye(s * 0.63, -s * 0.94, s * 0.03);
+        },
+      });
+      return;
+    }
+    // Sitting up
+    ctx.save();
+    ctx.translate(0, s * 1.35);
+    ctx.strokeStyle = fur;
+    ctx.lineWidth = s * 0.07;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-s * 0.2, -s * 0.1); ctx.bezierCurveTo(-s * 0.7, 0, -s * 0.9, -s * 0.2, -s * 0.75, -s * 0.45); ctx.stroke();
+    ctx.fillStyle = fur;
+    ctx.beginPath(); ctx.ellipse(0, -s * 0.5, s * 0.3, s * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = dark;
+    ctx.beginPath(); ctx.ellipse(s * 0.12, -s * 0.1, s * 0.2, s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = fur;
+    ctx.beginPath(); ctx.ellipse(s * 0.18, -s * 0.48, s * 0.07, s * 0.24, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(s * 0.06, -s * 1.02, s * 0.25, 0, Math.PI * 2); ctx.fill();
+    [-0.18, 0.22].forEach(x => { ctx.beginPath(); ctx.arc(x * s, -s * 1.04, s * 0.07, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = face;
+    ctx.beginPath(); ctx.ellipse(s * 0.1, -s * 0.98, s * 0.15, s * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+    realEye(s * 0.05, -s * 1.03, s * 0.03);
+    realEye(s * 0.16, -s * 1.03, s * 0.03);
+    ctx.restore();
+    drawMoodBubble(k, s * 0.06, -s * 1.45 + s * 1.35);
+  },
+
+  // Parrot: flying side view with flapping wings
+  realParrot(s, t, c, k) {
+    const flap = Math.sin(t * 14 + k.phase);
+    const body = rgb(c), wingBands = [rgb(mix(c, BLACK, 0.15)), 'rgb(255,210,63)', 'rgb(47,127,214)'];
+    const wing = (angle, colors) => {
+      ctx.save();
+      ctx.translate(-s * 0.05, -s * 0.08);
+      ctx.rotate(angle);
+      colors.forEach((col, i) => {
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.ellipse(-s * (0.3 + i * 0.12), 0, s * (0.36 - i * 0.08), s * 0.12, 0, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
+    };
+    wing(0.4 + flap * 0.8, [rgb(mix(c, BLACK, 0.35))]);
+    // Long tail feathers
+    [wingBands[2], body].forEach((col, i) => {
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.moveTo(-s * 0.35, s * 0.02); ctx.lineTo(-s * 1.15, s * (0.18 + i * 0.08)); ctx.lineTo(-s * 0.35, s * 0.14); ctx.fill();
+    });
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 0.45, s * 0.2, -0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(s * 0.42, -s * 0.1, s * 0.19, 0, Math.PI * 2); ctx.fill();
+    // White face patch, hooked beak, eye
+    ctx.fillStyle = 'rgb(250,245,240)';
+    ctx.beginPath(); ctx.ellipse(s * 0.47, -s * 0.1, s * 0.09, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgb(60,55,55)';
+    ctx.beginPath(); ctx.moveTo(s * 0.56, -s * 0.18); ctx.quadraticCurveTo(s * 0.78, -s * 0.16, s * 0.7, s * 0.02); ctx.lineTo(s * 0.58, -s * 0.04); ctx.fill();
+    realEye(s * 0.46, -s * 0.12, s * 0.03);
+    wing(-0.2 + flap * 0.8, wingBands);
+    drawMoodBubble(k, s * 0.42, -s * 0.5);
+  },
+
+  // Chameleon: slow walk on little gripping legs, curled tail, color from c (rainbow for the rare)
+  realChameleon(s, t, c, k) {
+    const skin = rgb(c), dark = rgb(mix(c, BLACK, 0.3)), light = rgb(mix(c, WHITE, 0.35));
+    walkQuad(s, t, k, {
+      gait: 'walk', strideLen: 0.6, bob: 0.01, stride: 0.35, bend: 0.9,
+      backX: -0.4, frontX: 0.25, hip: 0.35, upper: 0.17, w1: 0.08, w2: 0.07,
+      color: skin, farColor: dark, hoof: dark, head: [0.45, -0.75],
+      body: () => {
+        // Tail curling into a spiral
+        ctx.strokeStyle = skin;
+        ctx.lineWidth = s * 0.09;
+        ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(-s * 0.5, -s * 0.45);
+        ctx.bezierCurveTo(-s * 0.95, -s * 0.45, -s * 1.0, -s * 0.05, -s * 0.78, -s * 0.06);
+        ctx.quadraticCurveTo(-s * 0.62, -s * 0.12, -s * 0.72, -s * 0.22); ctx.stroke();
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.ellipse(-s * 0.08, -s * 0.5, s * 0.48, s * 0.2, -0.05, 0, Math.PI * 2); ctx.fill();
+        // Crest bumps and side stripe
+        ctx.fillStyle = dark;
+        for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.arc((-0.45 + i * 0.15) * s, -s * 0.68, s * 0.035, 0, Math.PI * 2); ctx.fill(); }
+        ctx.fillStyle = light;
+        ctx.beginPath(); ctx.ellipse(-s * 0.08, -s * 0.46, s * 0.36, s * 0.05, -0.05, 0, Math.PI * 2); ctx.fill();
+        // Casque head with a turret eye
+        ctx.fillStyle = skin;
+        ctx.beginPath(); ctx.moveTo(s * 0.3, -s * 0.62); ctx.lineTo(s * 0.4, -s * 0.85); ctx.quadraticCurveTo(s * 0.62, -s * 0.6, s * 0.62, -s * 0.48); ctx.lineTo(s * 0.32, -s * 0.38); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = light;
+        ctx.beginPath(); ctx.arc(s * 0.46, -s * 0.58, s * 0.075, 0, Math.PI * 2); ctx.fill();
+        realEye(s * 0.48, -s * 0.58, s * 0.03);
+      },
+    });
+  },
 });
 
 // Pulsing golden glow behind a rare
