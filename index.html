@@ -573,8 +573,8 @@ const SCENES = {
     jarKey: 'noiseMonitorJar_pets',
     intro: 'Puppies and kitties come out to play when the room is quiet. If it gets too loud, they run and hide!',
     rareIntro: 'Stay quiet longer to meet rare pets. Keep one on screen long enough and it joins your pet album.',
-    size: [16, 19], rareSize: 17,
-    max: 14,
+    size: [22, 26], rareSize: 23,
+    max: 12,
     // Sparrows fly in the sky; dogs and cats walk around the yard
     home: [0.08, 0.88, 0.12, 0.4],
     ground: [0.66, 0.9],
@@ -1948,8 +1948,8 @@ function drawBackyard(g, rand) {
   g.fillRect(tx - 10 * sc, ty - 130 * sc, 20 * sc, 130 * sc);
   bush(g, tx, ty - 150 * sc, 70 * sc, '#5ea64a', '#4b8f3b');
 
-  // Doghouse
-  const dx = W * 0.08, dy = H * 0.74, dw = 70 * sc, dh = 50 * sc;
+  // Doghouse against the fence, behind where the pets walk
+  const dx = W * 0.1, dy = H * 0.635, dw = 54 * sc, dh = 38 * sc;
   g.fillStyle = '#d0634f';
   g.fillRect(dx - dw / 2, dy - dh, dw, dh);
   g.fillStyle = '#8f3d33';
